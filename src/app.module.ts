@@ -1,13 +1,26 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { IllustController } from './illust/illust.controller';
-import { IllustService } from './illust/illust.service';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { IllustModule } from './illust/illust.module';
+import { PixivApiController } from './pixiv-api/pixiv-api.controller';
+import { PixivApiService } from './pixiv-api/pixiv-api.service';
 
 @Module({
-  imports: [IllustModule],
-  controllers: [AppController, IllustController],
-  providers: [AppService, IllustService],
+  imports: [
+    IllustModule,
+    TypeOrmModule.forRoot({
+      type: 'mysql',
+      host: '127.0.0.1',
+      port: 3306,
+      username: 'root',
+      password: '26239122xzw',
+      database: 'mpi3s',
+      autoLoadEntities: true,
+      synchronize: true, // 数据库自动同步 entity 文件修改
+    }),
+  ],
+  controllers: [AppController, PixivApiController],
+  providers: [AppService, PixivApiService],
 })
 export class AppModule {}
