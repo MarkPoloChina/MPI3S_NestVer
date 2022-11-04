@@ -33,13 +33,7 @@ export class Meta {
   @Column({ type: 'int', nullable: true })
   book_cnt: number;
 
-  @Column({ type: 'datetime', nullable: true })
-  timestamp: Date;
-
-  @Column({ type: 'date', nullable: true })
-  date: Date;
-
-  @OneToOne(() => Illust)
+  @OneToOne(() => Illust, (illust) => illust.meta)
   @JoinColumn()
   illust: Illust;
 }

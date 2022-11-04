@@ -4,7 +4,7 @@
 // Definitions: https://github.com/borisyankov/DefinitelyTyped
 
 export declare namespace PixivAPI {
-  declare function getAuth(): void;
+  declare function getAuth(): any;
 
   /**
    *
@@ -12,17 +12,17 @@ export declare namespace PixivAPI {
    * @param url
    * @return
    */
-  declare function getBookmarksOfFirstPages(page: any, url: any): Ret;
+  declare function getBookmarksOfFirstPages(page: any, url: any): promise;
 
   /**
    *
    * @param url
    */
-  declare function downloadFile(url: any): void;
+  declare function downloadFile(url: any): promise;
 
   /**
    *
    * @param pid
    */
-  declare function getIllustInfoById(pid: any): void;
+  declare function getIllustInfoById(pid: any): promise;
 }

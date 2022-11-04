@@ -5,6 +5,7 @@ const Axios = require('axios');
 
 let api = new Pixiv();
 let ready = false;
+let retry = 0;
 
 global.p_direct = true;
 
@@ -14,12 +15,19 @@ Pixiv.setAgent(
     servername: '',
   }),
 );
-
-api.refreshAccessToken(config.api.token).then(() => {
-  ready = true;
-});
-
 export class PixivAPI {
+  static refreshToken = async () => {
+    try {
+      await api.refreshAccessToken(config.api.token);
+      ready = true;
+      console.log('Token Passed! Now can use pixiv API.'.green);
+    } catch (err) {
+      if (retry >= 3) throw Error('Token Auth failed after serveral retries.');
+      console.log('Token Auth failed. Retry...');
+      retry++;
+      await this.refreshToken();
+    }
+  };
   static getAuth = () => {
     if (!ready) {
       console.log('Waiting for Network......');
@@ -29,6 +37,7 @@ export class PixivAPI {
     }
   };
   static getBookmarksOfFirstPages = async (page = 1, url = null) => {
+    if (!ready) throw Error('Token Waiting Status');
     let json;
     if (url) json = await api.requestUrl(url);
     else json = await api.userBookmarksIllust(api.authInfo().user.id);
@@ -47,6 +56,7 @@ export class PixivAPI {
   };
 
   static downloadFile = async (url) => {
+    if (!ready) throw Error('Token Waiting Status');
     const axiosOption = {
       headers: {
         referer: 'https://www.pixiv.net/',
@@ -72,7 +82,26 @@ export class PixivAPI {
   };
 
   static getIllustInfoById = async (pid) => {
-    let json = await api.illustDetail(pid);
-    return json;
+    if (!ready) throw Error('Token Waiting Status');
+    try {
+      let json = await api.illustDetail(pid);
+      return json;
+    } catch (err) {
+      try {
+        if (
+          JSON.parse(err).error.message.startsWith(
+            'Error occurred at the OAuth process.',
+          )
+        ) {
+          ready = false;
+          console.log('Token Expired!! Try Refresh.'.yellow);
+          await this.refreshToken();
+          return this.getIllustInfoById(pid);
+        } else throw err;
+      } catch (_err) {
+        throw err;
+      }
+    }
   };
 }
+PixivAPI.refreshToken();

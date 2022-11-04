@@ -1,4 +1,14 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  UpdateDateColumn,
+  CreateDateColumn,
+  OneToOne,
+} from 'typeorm';
+import { Meta } from './meta.entities';
+import { Poly } from './poly.entities';
 
 @Entity()
 export class Illust {
@@ -28,4 +38,19 @@ export class Illust {
 
   @Column({ type: 'varchar', nullable: true })
   thum_endpoint: string;
+
+  @Column({ type: 'date', nullable: true })
+  date: Date;
+
+  @ManyToOne(() => Poly, (poly) => poly.illusts)
+  poly: Poly;
+
+  @OneToOne(() => Meta, (meta) => meta.illust)
+  meta: Meta;
+
+  @UpdateDateColumn()
+  updateDate: Date;
+
+  @CreateDateColumn()
+  createDate: Date;
 }

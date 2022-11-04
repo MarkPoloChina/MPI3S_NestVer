@@ -3,12 +3,12 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { IllustModule } from './illust/illust.module';
-import { PixivApiController } from './pixiv-api/pixiv-api.controller';
-import { PixivApiService } from './pixiv-api/pixiv-api.service';
+import { PixivApiModule } from './pixiv-api/pixiv-api.module';
 
 @Module({
   imports: [
     IllustModule,
+    PixivApiModule,
     TypeOrmModule.forRoot({
       type: 'mysql',
       host: '127.0.0.1',
@@ -20,7 +20,7 @@ import { PixivApiService } from './pixiv-api/pixiv-api.service';
       synchronize: true, // 数据库自动同步 entity 文件修改
     }),
   ],
-  controllers: [AppController, PixivApiController],
-  providers: [AppService, PixivApiService],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}
