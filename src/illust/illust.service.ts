@@ -67,12 +67,13 @@ export class IllustService {
     // conditionJson = JSON.stringify(testObj);
     const conditionObj = JSON.parse(conditionJson);
     Object.keys(conditionObj).forEach((colName, index) => {
-      querybuilder = querybuilder.andWhere(
-        `(${colName} IN (:...row${index}))`,
-        {
-          [`row${index}`]: conditionObj[colName],
-        },
-      );
+      if (conditionObj[colName].length >= 1)
+        querybuilder = querybuilder.andWhere(
+          `(${colName} IN (:...row${index}))`,
+          {
+            [`row${index}`]: conditionObj[colName],
+          },
+        );
     });
     const results = await querybuilder
       .orderBy(orderAs, orderDesc ? 'DESC' : 'ASC')
@@ -92,12 +93,13 @@ export class IllustService {
       .where('Illust.id IS NOT NULL');
     const conditionObj = JSON.parse(conditionJson);
     Object.keys(conditionObj).forEach((colName, index) => {
-      querybuilder = querybuilder.andWhere(
-        `(${colName} IN (:...row${index}))`,
-        {
-          [`row${index}`]: conditionObj[colName],
-        },
-      );
+      if (conditionObj[colName].length >= 1)
+        querybuilder = querybuilder.andWhere(
+          `(${colName} IN (:...row${index}))`,
+          {
+            [`row${index}`]: conditionObj[colName],
+          },
+        );
     });
     const results = await querybuilder.getRawOne();
     // dont use getCount()!! That will query and transfer all data that is too large.
