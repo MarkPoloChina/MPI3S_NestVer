@@ -2,19 +2,24 @@ const Pixiv = require('./pixiv-api-client-mod');
 const config = require('../../config');
 const { Agent } = require('https');
 const Axios = require('axios');
+const HttpsProxyAgent = require('https-proxy-agent');
 
 let api = new Pixiv();
 let ready = false;
 let retry = 0;
 
-global.p_direct = true;
+global.p_direct = config.api.useDirectForApi;
 
-Pixiv.setAgent(
-  new Agent({
-    rejectUnauthorized: false,
-    servername: '',
-  }),
-);
+if (config.api.useDirectForApi)
+  Pixiv.setAgent(
+    new Agent({
+      rejectUnauthorized: false,
+      servername: '',
+    }),
+  );
+else if (config.api.useAgent) {
+  Pixiv.setAgent(new HttpsProxyAgent(config.api.agent));
+}
 export class PixivAPI {
   static refreshToken = async () => {
     try {
@@ -63,13 +68,7 @@ export class PixivAPI {
       },
       responseType: 'arraybuffer',
     };
-    if (config.api.useDirectForFile) {
-      const Url = new URL(url);
-      axiosOption.headers.Host = Url.host;
-      Url.hostname = config.api.HOST;
-      let res = await Axios.get(Url.href, axiosOption);
-      return res.data;
-    } else if (config.api.useCfForFile) {
+    if (config.api.useCfForFile) {
       let res = await Axios.get(
         url.replace('i.pximg.net', 'i-cf.pximg.net'),
         axiosOption,

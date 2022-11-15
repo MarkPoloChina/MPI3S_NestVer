@@ -59,12 +59,6 @@ export class IllustService {
       .leftJoinAndSelect('Illust.meta', 'meta')
       .leftJoinAndSelect('Illust.poly', 'poly')
       .where('Illust.id IS NOT NULL');
-    // const testObj = {
-    //   // 'meta.page': [10, 20],
-    //   'meta.pid': [10081533],
-    //   'poly.type': ['test2'],
-    // };
-    // conditionJson = JSON.stringify(testObj);
     const conditionObj = JSON.parse(conditionJson);
     Object.keys(conditionObj).forEach((colName, index) => {
       if (conditionObj[colName].length >= 1)
@@ -156,6 +150,8 @@ export class IllustService {
     });
     return result;
   }
+
+  // async updateIllust(ids: Array<number>, setter: any) {}
 
   async newIllust() {
     // for (let i = 0; i < 66647; i++)
