@@ -5,10 +5,11 @@ import { IllustController } from './illust.controller';
 import { IllustService } from './illust.service';
 import { Meta } from './entities/meta.entities';
 import { Poly } from './entities/poly.entities';
+import { RemoteBase } from './entities/remote_base.entities';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Illust, Meta, Poly])],
-  providers: [IllustService, Illust, Meta, Poly],
+  imports: [TypeOrmModule.forFeature([Illust, Meta, Poly, RemoteBase])],
+  providers: [IllustService, Illust, Meta, Poly, RemoteBase],
   controllers: [IllustController],
 })
 export class IllustModule {}

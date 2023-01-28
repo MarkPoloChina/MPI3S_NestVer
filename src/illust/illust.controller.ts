@@ -1,15 +1,17 @@
 import {
-  // Body,
+  Body,
   Controller,
+  Delete,
   Get,
-  // Post,
+  Post,
+  Put,
   Query,
   // Res,
   // UploadedFile,
   // UseInterceptors,
 } from '@nestjs/common';
 // import { FileInterceptor } from '@nestjs/platform-express';
-// import { IllustDto } from './dto/illust.dto';
+import { IllustDto } from './dto/illust.dto';
 import { IllustService } from './illust.service';
 // import { Response } from 'express';
 
@@ -18,9 +20,9 @@ export class IllustController {
   constructor(private readonly illustService: IllustService) {}
 
   @Get('enum')
-  pixivEnumDate(
+  illustEnum(
     @Query('row') row: string,
-    @Query('desc') desc: boolean,
+    @Query('desc') desc: number,
     @Query('requiredType') requiredType?: string,
   ) {
     return this.illustService.getIllustEnum(row, desc, requiredType);
@@ -32,7 +34,7 @@ export class IllustController {
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
     @Query('orderAs') orderAs?: string,
-    @Query('orderDesc') orderDesc?: boolean,
+    @Query('orderDesc') orderDesc?: number,
   ) {
     return this.illustService.getIllustListByStdQuery(
       conditionJson,
@@ -48,19 +50,75 @@ export class IllustController {
     return this.illustService.getIllustListCountByStdQuery(conditionJson);
   }
 
-  @Get('poly/list')
-  async illustPolyList(
-    @Query('withIllust') withIllust?: string,
-    @Query('type') type?: string,
-  ) {
-    return this.illustService.getPolyList(withIllust == 'true', type);
+  @Post('list')
+  newIllusts(@Body() illusts: IllustDto[]) {
+    return this.illustService.newIllusts(illusts);
   }
 
-  @Get('test')
-  test() {
-    this.illustService.newIllust();
-    return '';
+  @Put('list')
+  updateIllusts(
+    @Body() illusts: IllustDto[],
+    @Query('byMatch') byMatch: number,
+    @Query('addIfNotFound') addIfNotFound: number,
+  ) {
+    if (byMatch)
+      return this.illustService.updateIllustsByMatch(illusts, addIfNotFound);
+    else return this.illustService.updateIllustsById(illusts, addIfNotFound);
   }
+
+  @Get('poly/list')
+  async illustPolyList(
+    @Query('withIllust') withIllust?: number,
+    @Query('type') type?: string,
+  ) {
+    return this.illustService.getPolyList(withIllust, type);
+  }
+
+  @Post('poly/list')
+  async updatePoly(
+    @Body() illusts: IllustDto[],
+    @Query('byMatch') byMatch: number,
+    @Query('type') type: string,
+    @Query('parent') parent: string,
+    @Query('name') name: string,
+  ) {
+    if (byMatch)
+      return this.illustService.updatePolyByMatch(illusts, type, parent, name);
+    else return 0;
+  }
+
+  @Delete('poly/list')
+  async removeFromPoly(
+    @Query('polyId') polyId: number,
+    @Query('illustList') ids: number[],
+  ) {
+    return this.illustService.removeIllustsFromPoly(polyId, ids);
+  }
+
+  @Delete('poly')
+  async deletePoly(@Query('polyId') polyId: number) {
+    return this.illustService.deletePoly(polyId);
+  }
+
+  @Get('poly/enum')
+  async illustPolyEnum(
+    @Query('row') row: string,
+    @Query('desc') desc: number,
+    @Query('requiredType') requiredType?: string,
+  ) {
+    return this.illustService.getPolyEnum(row, desc, requiredType);
+  }
+
+  @Get('remote-base/list')
+  async remoteBase(@Query('withIllust') withIllust: number) {
+    return this.illustService.getRemoteBaseList(withIllust);
+  }
+
+  // @Get('test')
+  // test() {
+  //   this.illustService.newIllust();
+  //   return '';
+  // }
 
   // @Post('test')
   // @UseInterceptors(FileInterceptor('file'))

@@ -44,19 +44,36 @@ export class PixivAPI {
   static getBookmarksOfFirstPages = async (page = 1, url = null) => {
     if (!ready) throw Error('Token Waiting Status');
     let json;
-    if (url) json = await api.requestUrl(url);
-    else json = await api.userBookmarksIllust(api.authInfo().user.id);
-    if (page == 1) return json;
-    else {
-      let next = json.next_url;
-      for (let i = 0; i < page - 1; i++) {
-        if (!next || next == '') break;
-        let cur = await api.requestUrl(next);
-        json.illusts.push(...cur.illusts);
-        next = cur.next_url;
+    try {
+      if (url) json = await api.requestUrl(url);
+      else json = await api.userBookmarksIllust(api.authInfo().user.id);
+      if (page == 1) return json;
+      else {
+        let next = json.next_url;
+        for (let i = 0; i < page - 1; i++) {
+          if (!next || next == '') break;
+          let cur = await api.requestUrl(next);
+          json.illusts.push(...cur.illusts);
+          next = cur.next_url;
+        }
+        json.next_url = next;
+        return json;
       }
-      json.next_url = next;
-      return json;
+    } catch (err) {
+      try {
+        if (
+          JSON.parse(err).error.message.startsWith(
+            'Error occurred at the OAuth process.',
+          )
+        ) {
+          ready = false;
+          console.log('Token Expired!! Try Refresh.'.yellow);
+          await this.refreshToken();
+          return this.getIllustInfoById(pid);
+        } else throw err;
+      } catch (_err) {
+        throw err;
+      }
     }
   };
 

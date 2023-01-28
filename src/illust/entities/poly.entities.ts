@@ -1,4 +1,10 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToMany,
+  JoinTable,
+} from 'typeorm';
 import { Illust } from './illust.entities';
 
 @Entity()
@@ -15,6 +21,7 @@ export class Poly {
   @Column({ type: 'varchar', nullable: true })
   parent: string;
 
-  @OneToMany(() => Illust, (illust) => illust.poly)
+  @ManyToMany(() => Illust, (illust) => illust.poly)
+  @JoinTable()
   illusts: Illust[];
 }

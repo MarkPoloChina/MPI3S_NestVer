@@ -7,10 +7,10 @@ const config = {
   },
   api: {
     token: 'ctnEKJTh64mdiYJKi3Qzsvbypxx97fAYHCv1U9LwFDY',
-    useDirectForApi: false,
+    useDirectForApi: true,
     useCfForFile: true,
-    useAgent: false,
-    agent: 'https://127.0.0.1:7890',
+    useAgent: true,
+    agent: 'http://127.0.0.1:7890',
   },
   server: {
     port: 8988,

@@ -44,7 +44,6 @@ export class PixivApiService {
 
   async getLatestIllusts() {
     const list = [];
-    let flag = true;
     const queryAsync = (pid, index) => {
       return new Promise((resolve, reject) => {
         this.metaRepository
@@ -54,6 +53,7 @@ export class PixivApiService {
       });
     };
     const check = async (url?: string) => {
+      let flag = false;
       const json = await PixivAPI.getBookmarksOfFirstPages(1, url);
       const promises = [];
       json.illusts.forEach((illust, index) => {
@@ -61,13 +61,14 @@ export class PixivApiService {
       });
       const values = await Promise.all(promises);
       values.forEach((value) => {
-        if (!value.data)
+        if (!value.data) {
           list.push({ ...json.illusts[value.index], caption: null });
-        else flag = false;
+          flag = true;
+        }
       });
       if (flag) return await check(json.next_url);
       else {
-        return json.illusts;
+        return list;
       }
     };
     return await check();
