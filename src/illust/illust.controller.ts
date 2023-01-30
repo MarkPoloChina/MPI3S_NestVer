@@ -61,9 +61,7 @@ export class IllustController {
     @Query('byMatch') byMatch: number,
     @Query('addIfNotFound') addIfNotFound: number,
   ) {
-    if (byMatch)
-      return this.illustService.updateIllustsByMatch(illusts, addIfNotFound);
-    else return this.illustService.updateIllustsById(illusts, addIfNotFound);
+    return this.illustService.updateIllusts(illusts, addIfNotFound, byMatch);
   }
 
   @Get('poly/list')
@@ -81,10 +79,17 @@ export class IllustController {
     @Query('type') type: string,
     @Query('parent') parent: string,
     @Query('name') name: string,
+    @Query('conditionJson') conditionJson: string,
+    @Query('byCondition') byCondition: number,
   ) {
-    if (byMatch)
-      return this.illustService.updatePolyByMatch(illusts, type, parent, name);
-    else return 0;
+    return byCondition
+      ? this.illustService.updatePolyByCondition(
+          conditionJson,
+          type,
+          parent,
+          name,
+        )
+      : this.illustService.updatePoly(illusts, type, parent, name, byMatch);
   }
 
   @Delete('poly/list')

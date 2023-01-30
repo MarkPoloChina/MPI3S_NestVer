@@ -4,6 +4,7 @@ import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { IllustModule } from './illust/illust.module';
 import { PixivApiModule } from './pixiv-api/pixiv-api.module';
+import config from './config';
 
 @Module({
   imports: [
@@ -11,11 +12,11 @@ import { PixivApiModule } from './pixiv-api/pixiv-api.module';
     PixivApiModule,
     TypeOrmModule.forRoot({
       type: 'mysql',
-      host: '127.0.0.1',
+      host: config.database.host,
       port: 3306,
-      username: 'root',
-      password: '26239122xzw',
-      database: 'mpi3s',
+      username: config.database.user,
+      password: config.database.password,
+      database: config.database.database,
       autoLoadEntities: true,
       synchronize: true, // 数据库自动同步 entity 文件修改
     }),

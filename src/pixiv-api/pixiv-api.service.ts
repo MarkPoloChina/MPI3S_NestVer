@@ -8,11 +8,7 @@ export class PixivApiService {
   @InjectRepository(Meta)
   private readonly metaRepository: Repository<Meta>;
 
-  async getPixivBlob(
-    pid: number,
-    page: number,
-    type: 'square_medium' | 'medium' | 'large' | 'original',
-  ) {
+  async getPixivBlob(pid: number, page: number, type: string) {
     try {
       const detail = await PixivAPI.getIllustInfoById(pid);
       if (page >= detail.illust.page_count) return null;
@@ -28,6 +24,32 @@ export class PixivApiService {
         );
     } catch (err) {
       console.log(err);
+      try {
+        if (
+          JSON.parse(err).error &&
+          JSON.parse(err).error.user_message ==
+            'The creator has limited who can view this content'
+        )
+          return null;
+        else throw Error('HTTP ERROR');
+      } catch {
+        throw Error('HTTP ERROR');
+      }
+    }
+  }
+
+  async getPixivUrl(pid: number, page: number, type: string) {
+    try {
+      const detail = await PixivAPI.getIllustInfoById(pid);
+      if (page >= detail.illust.page_count) return null;
+      const url =
+        detail.illust.page_count == 1
+          ? type == 'original'
+            ? detail.illust.meta_single_page.original_image_url
+            : detail.illust.image_urls[type]
+          : detail.illust.meta_pages[page].image_urls[type];
+      return url.replace('i.pximg.net', 'i-cf.pximg.net');
+    } catch (err) {
       try {
         if (
           JSON.parse(err).error &&

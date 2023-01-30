@@ -1,6 +1,6 @@
 const config = {
   database: {
-    host: 'markpolo.cn',
+    host: 'localhost',
     user: 'mpi3s',
     password: 'mpi3ss3ipm',
     database: 'mpi3s',
@@ -9,11 +9,11 @@ const config = {
     token: 'ctnEKJTh64mdiYJKi3Qzsvbypxx97fAYHCv1U9LwFDY',
     useDirectForApi: true,
     useCfForFile: true,
-    useAgent: true,
+    useAgent: false,
     agent: 'http://127.0.0.1:7890',
   },
   server: {
-    port: 8988,
+    port: 3000,
   },
 };
 module.exports = config;

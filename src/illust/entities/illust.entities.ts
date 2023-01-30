@@ -20,7 +20,7 @@ export class Illust {
   @Column({ type: 'varchar', nullable: false })
   type: string;
 
-  @Column({ type: 'int', nullable: true })
+  @Column({ type: 'int', nullable: false, default: 0 })
   star: number;
 
   @Column({ type: 'varchar', nullable: true })

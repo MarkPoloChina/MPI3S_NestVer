@@ -218,7 +218,6 @@ export class IllustService {
       }
       try {
         await this.illustRepository.save(newIllust);
-        console.log(newIllust);
         resp_list.push({ bid: illust.bid, status: 'success', message: 'OK' });
       } catch (err) {
         resp_list.push({
@@ -231,7 +230,11 @@ export class IllustService {
     return { code: 200000, msg: 'process end', data: resp_list };
   }
 
-  async updateIllustsByMatch(illusts: IllustDto[], addIfNotFound: number) {
+  async updateIllusts(
+    illusts: IllustDto[],
+    addIfNotFound: number,
+    byMatch: number,
+  ) {
     const resp_list = [];
     for (const illust of illusts) {
       if (!illust.meta) {
@@ -243,7 +246,14 @@ export class IllustService {
         continue;
       }
       const targetMeta = await this.metaRepository.findOne({
-        where: { pid: illust.meta.pid, page: illust.meta.page },
+        where:
+          byMatch != 0
+            ? { pid: illust.meta.pid, page: illust.meta.page }
+            : {
+                illust: {
+                  id: illust.id,
+                },
+              },
         relations: {
           illust: true,
         },
@@ -268,7 +278,6 @@ export class IllustService {
           newIllust.meta.limit = illust.meta.limit;
           try {
             await this.illustRepository.save(newIllust);
-            console.log(newIllust);
             resp_list.push({
               bid: illust.bid,
               status: 'success',
@@ -290,7 +299,6 @@ export class IllustService {
         try {
           await this.metaRepository.save(targetMeta);
           await this.illustRepository.save(targetMeta.illust);
-          console.log(targetMeta);
           resp_list.push({
             bid: illust.bid,
             status: 'success',
@@ -306,10 +314,6 @@ export class IllustService {
       }
     }
     return { code: 200000, msg: 'process end', data: resp_list };
-  }
-
-  async updateIllustsById(illusts: IllustDto[], addIfNotFound: number) {
-    return 0;
   }
 
   async removeIllustsFromPoly(polyId: number, ids: number[]) {
@@ -345,11 +349,12 @@ export class IllustService {
       return { code: 500000, msg: err };
     }
   }
-  async updatePolyByMatch(
+  async updatePoly(
     illusts: IllustDto[],
     type: string,
     parent: string,
     name: string,
+    byMatch: number,
   ) {
     const resp_list = [];
     let targetPoly = await this.polyRepository.findOne({
@@ -371,7 +376,14 @@ export class IllustService {
     }
     for (const illust of illusts) {
       const targetMeta = await this.metaRepository.findOne({
-        where: { pid: illust.meta.pid, page: illust.meta.page },
+        where:
+          byMatch != 0
+            ? { pid: illust.meta.pid, page: illust.meta.page }
+            : {
+                illust: {
+                  id: illust.id,
+                },
+              },
         relations: {
           illust: true,
         },
@@ -398,6 +410,65 @@ export class IllustService {
       }
     }
     return { code: 200000, msg: 'process end', data: resp_list };
+  }
+
+  async updatePolyByCondition(
+    conditionJson: string,
+    type: string,
+    parent: string,
+    name: string,
+  ) {
+    let targetPoly = await this.polyRepository.findOne({
+      where: {
+        type: type,
+        parent: !parent || parent == '' ? null : parent,
+        name: name,
+      },
+      relations: {
+        illusts: true,
+      },
+    });
+    if (!targetPoly) {
+      targetPoly = new Poly();
+      targetPoly.name = name;
+      targetPoly.parent = !parent || parent == '' ? null : parent;
+      targetPoly.type = type;
+      targetPoly.illusts = [];
+    }
+    let querybuilder: SelectQueryBuilder<Illust> = this.illustRepository
+      .createQueryBuilder()
+      .leftJoin('Illust.meta', 'meta')
+      .leftJoin('Illust.poly', 'poly')
+      .leftJoin('Illust.remote_base', 'remote_base')
+      .leftJoin('Illust.thum_base', 'thum_base')
+      .select('Illust.id')
+      .where('Illust.id IS NOT NULL');
+    const conditionObj = JSON.parse(conditionJson);
+    Object.keys(conditionObj).forEach((colName, index) => {
+      if (conditionObj[colName].length >= 1)
+        querybuilder = querybuilder.andWhere(
+          `(${colName} IN (:...row${index}))`,
+          {
+            [`row${index}`]: conditionObj[colName],
+          },
+        );
+    });
+    const results = await querybuilder.getMany();
+    for (const illust of results) {
+      const targetMeta = await this.metaRepository.findOne({
+        where: { id: illust.id },
+        relations: {
+          illust: true,
+        },
+      });
+      targetPoly.illusts.push(targetMeta.illust);
+      try {
+        await this.polyRepository.save(targetPoly);
+      } catch (err) {
+        return { code: 500000, msg: `${err}` };
+      }
+    }
+    return { code: 200000, msg: 'process end' };
   }
 
   async getRemoteBaseList(withIllust: number) {

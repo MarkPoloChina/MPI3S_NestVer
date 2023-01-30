@@ -112,7 +112,7 @@ export class PixivAPI {
           ready = false;
           console.log('Token Expired!! Try Refresh.'.yellow);
           await this.refreshToken();
-          return this.getIllustInfoById(pid);
+          return await this.getIllustInfoById(pid);
         } else throw err;
       } catch (_err) {
         throw err;

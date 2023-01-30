@@ -1,5 +1,5 @@
 export interface IllustDto {
-  id: string | null;
+  id: number | null;
   type: string | null;
   star: number | null;
   date: Date | null;
@@ -16,5 +16,5 @@ export interface IllustDto {
     thum_base_id: number;
     thum_endpoint: string;
   };
-  bid: number;
+  bid: number | string;
 }
