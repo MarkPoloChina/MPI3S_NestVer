@@ -1,5 +1,5 @@
 const Pixiv = require('./pixiv-api-client-mod');
-const config = require('../../config');
+const config = require('../../config').default;
 const { Agent } = require('https');
 const Axios = require('axios');
 const HttpsProxyAgent = require('https-proxy-agent');

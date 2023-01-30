@@ -1,4 +1,4 @@
-const config = {
+export default {
   database: {
     host: 'localhost',
     user: 'mpi3s',
@@ -16,4 +16,3 @@ const config = {
     port: 3000,
   },
 };
-module.exports = config;
