@@ -1,8 +1,8 @@
 export default {
   database: {
     host: 'localhost',
-    user: 'mpi3s',
-    password: 'mpi3ss3ipm',
+    user: 'root',
+    password: '26239122xzw',
     database: 'mpi3s',
   },
   api: {
