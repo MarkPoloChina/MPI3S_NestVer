@@ -8,11 +8,10 @@ export declare namespace PixivAPI {
 
   /**
    *
-   * @param page
    * @param url
    * @return
    */
-  declare function getBookmarksOfFirstPages(page: any, url: any): promise;
+  declare function getBookmarksFromUrl(url: any): promise;
 
   /**
    *

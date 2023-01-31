@@ -4,10 +4,12 @@ import {
   PrimaryGeneratedColumn,
   OneToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { Illust } from './illust.entities';
 
 @Entity()
+@Index(['pid', 'page'], { unique: true })
 export class Meta {
   @PrimaryGeneratedColumn({ type: 'int' })
   id: number;

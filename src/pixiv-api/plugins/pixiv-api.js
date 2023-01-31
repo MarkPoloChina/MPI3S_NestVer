@@ -33,52 +33,22 @@ export class PixivAPI {
       await this.refreshToken();
     }
   };
-  static getAuth = () => {
+  static getBookmarksFromUrl = async (url = null) => {
     if (!ready) {
-      console.log('Waiting for Network......');
-      return 'not ready';
-    } else {
-      return api.authInfo();
+      console.log('Token Expired!! Try Refresh.'.yellow);
+      await this.refreshToken();
     }
-  };
-  static getBookmarksOfFirstPages = async (page = 1, url = null) => {
-    if (!ready) throw Error('Token Waiting Status');
     let json;
     try {
       if (url) json = await api.requestUrl(url);
       else json = await api.userBookmarksIllust(api.authInfo().user.id);
-      if (page == 1) return json;
-      else {
-        let next = json.next_url;
-        for (let i = 0; i < page - 1; i++) {
-          if (!next || next == '') break;
-          let cur = await api.requestUrl(next);
-          json.illusts.push(...cur.illusts);
-          next = cur.next_url;
-        }
-        json.next_url = next;
-        return json;
-      }
+      return json;
     } catch (err) {
-      try {
-        if (
-          JSON.parse(err).error.message.startsWith(
-            'Error occurred at the OAuth process.',
-          )
-        ) {
-          ready = false;
-          console.log('Token Expired!! Try Refresh.'.yellow);
-          await this.refreshToken();
-          return this.getIllustInfoById(pid);
-        } else throw err;
-      } catch (_err) {
-        throw err;
-      }
+      return await this.processException(err, this.getBookmarksFromUrl, [url]);
     }
   };
 
   static downloadFile = async (url) => {
-    if (!ready) throw Error('Token Waiting Status');
     const axiosOption = {
       headers: {
         referer: 'https://www.pixiv.net/',
@@ -98,26 +68,37 @@ export class PixivAPI {
   };
 
   static getIllustInfoById = async (pid) => {
-    if (!ready) throw Error('Token Waiting Status');
-    try {
-      let json = await api.illustDetail(pid);
-      return json;
-    } catch (err) {
-      try {
-        if (
-          JSON.parse(err).error.message.startsWith(
-            'Error occurred at the OAuth process.',
-          )
-        ) {
-          ready = false;
-          console.log('Token Expired!! Try Refresh.'.yellow);
-          await this.refreshToken();
-          return await this.getIllustInfoById(pid);
-        } else throw err;
-      } catch (_err) {
-        throw err;
-      }
+    if (!ready) {
+      console.log('Token Expired!! Try Refresh.'.yellow);
+      await this.refreshToken();
     }
+    try {
+      return await api.illustDetail(pid);
+    } catch (err) {
+      return await this.processException(err, this.getIllustInfoById, [pid]);
+    }
+  };
+
+  static processException = async (err, nextPromise, param) => {
+    try {
+      if (
+        JSON.parse(err).error.message.startsWith(
+          'Error occurred at the OAuth process.',
+        )
+      ) {
+        ready = false;
+        return await nextPromise(...param);
+      }
+      if (
+        JSON.parse(err).error.user_message.startsWith(
+          'The creator has limited who can view this content',
+        )
+      )
+        return null;
+    } catch (_err) {
+      throw err;
+    }
+    throw err;
   };
 }
 PixivAPI.refreshToken();

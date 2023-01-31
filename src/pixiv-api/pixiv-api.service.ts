@@ -9,59 +9,34 @@ export class PixivApiService {
   private readonly metaRepository: Repository<Meta>;
 
   async getPixivBlob(pid: number, page: number, type: string) {
-    try {
-      const detail = await PixivAPI.getIllustInfoById(pid);
-      if (page >= detail.illust.page_count) return null;
-      if (detail.illust.page_count == 1) {
-        if (type == 'original')
-          return await PixivAPI.downloadFile(
-            detail.illust.meta_single_page.original_image_url,
-          );
-        else return await PixivAPI.downloadFile(detail.illust.image_urls[type]);
-      } else
+    const detail = await PixivAPI.getIllustInfoById(pid);
+    if (!detail || page >= detail.illust.page_count) return null;
+    if (detail.illust.page_count == 1) {
+      if (type == 'original')
         return await PixivAPI.downloadFile(
-          detail.illust.meta_pages[page].image_urls[type],
+          detail.illust.meta_single_page.original_image_url,
         );
-    } catch (err) {
-      console.log(err);
-      try {
-        if (
-          JSON.parse(err).error &&
-          JSON.parse(err).error.user_message ==
-            'The creator has limited who can view this content'
-        )
-          return null;
-        else throw Error('HTTP ERROR');
-      } catch {
-        throw Error('HTTP ERROR');
-      }
-    }
+      else return await PixivAPI.downloadFile(detail.illust.image_urls[type]);
+    } else
+      return await PixivAPI.downloadFile(
+        detail.illust.meta_pages[page].image_urls[type],
+      );
   }
 
   async getPixivUrl(pid: number, page: number, type: string) {
-    try {
-      const detail = await PixivAPI.getIllustInfoById(pid);
-      if (page >= detail.illust.page_count) return null;
-      const url =
-        detail.illust.page_count == 1
-          ? type == 'original'
-            ? detail.illust.meta_single_page.original_image_url
-            : detail.illust.image_urls[type]
-          : detail.illust.meta_pages[page].image_urls[type];
-      return url.replace('i.pximg.net', 'i-cf.pximg.net');
-    } catch (err) {
-      try {
-        if (
-          JSON.parse(err).error &&
-          JSON.parse(err).error.user_message ==
-            'The creator has limited who can view this content'
-        )
-          return null;
-        else throw Error('HTTP ERROR');
-      } catch {
-        throw Error('HTTP ERROR');
-      }
-    }
+    const detail = await PixivAPI.getIllustInfoById(pid);
+    if (!detail || page >= detail.illust.page_count) return null;
+    const url =
+      detail.illust.page_count == 1
+        ? type == 'original'
+          ? detail.illust.meta_single_page.original_image_url
+          : detail.illust.image_urls[type]
+        : detail.illust.meta_pages[page].image_urls[type];
+    return url.replace('i.pximg.net', 'i-cf.pximg.net');
+  }
+
+  async getPixivBlobByProxy(url: string) {
+    return await PixivAPI.downloadFile(url);
   }
 
   async getLatestIllusts() {
@@ -76,7 +51,7 @@ export class PixivApiService {
     };
     const check = async (url?: string) => {
       let flag = false;
-      const json = await PixivAPI.getBookmarksOfFirstPages(1, url);
+      const json = await PixivAPI.getBookmarksFromUrl(url);
       const promises = [];
       json.illusts.forEach((illust, index) => {
         promises.push(queryAsync(illust.id, index));

@@ -181,19 +181,6 @@ export class IllustService {
   async newIllusts(illusts: IllustDto[]) {
     const resp_list = [];
     for (const illust of illusts) {
-      if (
-        illust.meta &&
-        (await this.metaRepository.findOne({
-          where: { pid: illust.meta.pid, page: illust.meta.page },
-        }))
-      ) {
-        resp_list.push({
-          bid: illust.bid,
-          status: 'ignore',
-          message: 'SQL Exist META found.',
-        });
-        continue;
-      }
       const newIllust = new Illust();
       newIllust.type = illust.type;
       newIllust.star = illust.star;

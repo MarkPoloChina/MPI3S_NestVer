@@ -4,18 +4,16 @@ import {
   HttpException,
   HttpStatus,
   Query,
-  Redirect,
-  Req,
   Res,
 } from '@nestjs/common';
 import { PixivApiService } from './pixiv-api.service';
-import { Request, Response } from 'express';
+import { Response } from 'express';
 
 @Controller('pixiv-api')
 export class PixivApiController {
   constructor(private readonly pixivApiService: PixivApiService) {}
 
-  @Get('blob-s')
+  @Get('blob')
   async getBlob(
     @Query('pid') pid: number,
     @Query('page') page: number,
@@ -25,25 +23,14 @@ export class PixivApiController {
     if (!['square_medium', 'medium', 'original'].includes(type))
       throw new HttpException('bad param', HttpStatus.BAD_REQUEST);
     const blob = await this.pixivApiService.getPixivBlob(pid, page, type);
-    if (blob) response.end(blob);
-    else throw new HttpException('pid or page no found', HttpStatus.NOT_FOUND);
-  }
-
-  @Get('blob')
-  @Redirect()
-  async getBlobByRedirect(
-    @Query('pid') pid: number,
-    @Query('page') page: number,
-    @Query('type') type: string,
-    @Req() request: Request,
-  ) {
-    if (!['square_medium', 'medium', 'original'].includes(type))
-      throw new HttpException('bad param', HttpStatus.BAD_REQUEST);
-    const url = await this.pixivApiService.getPixivUrl(pid, page, type);
-    if (!url)
+    if (blob) {
+      response.setHeader(
+        'Cache-Control',
+        'public,max-age=' + 60 * 60 * 24 * 365,
+      );
+      response.end(blob);
+    } else
       throw new HttpException('pid or page no found', HttpStatus.NOT_FOUND);
-    if (url == '403') return { url: request.url.replace('blob', 'blob-s') };
-    else return { url: url };
   }
 
   @Get('url')
@@ -64,5 +51,11 @@ export class PixivApiController {
   async getJsonLatest(@Res() response: Response) {
     const json = await this.pixivApiService.getLatestIllusts();
     response.json(json);
+  }
+
+  @Get('blob/proxy')
+  async getBlobProxy(@Query('url') url: string, @Res() response: Response) {
+    const blob = await this.pixivApiService.getPixivBlobByProxy(url);
+    if (blob) response.end(blob);
   }
 }
