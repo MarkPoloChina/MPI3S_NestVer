@@ -48,8 +48,11 @@ export class PixivApiController {
   }
 
   @Get('pixiv-json/latest')
-  async getJsonLatest(@Res() response: Response) {
-    const json = await this.pixivApiService.getLatestIllusts();
+  async getJsonLatest(
+    @Res() response: Response,
+    @Query('isPrivate') isPrivate: number,
+  ) {
+    const json = await this.pixivApiService.getLatestIllusts(isPrivate);
     response.json(json);
   }
 

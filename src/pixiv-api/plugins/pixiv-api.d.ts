@@ -9,9 +9,10 @@ export declare namespace PixivAPI {
   /**
    *
    * @param url
+   * @param isPrivate
    * @return
    */
-  declare function getBookmarksFromUrl(url: any): promise;
+  declare function getBookmarksFromUrl(url: any, isPrivate: boolean): promise;
 
   /**
    *

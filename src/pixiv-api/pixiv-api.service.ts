@@ -10,7 +10,8 @@ export class PixivApiService {
 
   async getPixivBlob(pid: number, page: number, type: string) {
     const detail = await PixivAPI.getIllustInfoById(pid);
-    if (!detail || page >= detail.illust.page_count) return null;
+    if (!detail || page >= detail.illust.page_count || !detail.illust.visible)
+      return null;
     if (detail.illust.page_count == 1) {
       if (type == 'original')
         return await PixivAPI.downloadFile(
@@ -25,7 +26,8 @@ export class PixivApiService {
 
   async getPixivUrl(pid: number, page: number, type: string) {
     const detail = await PixivAPI.getIllustInfoById(pid);
-    if (!detail || page >= detail.illust.page_count) return null;
+    if (!detail || page >= detail.illust.page_count || !detail.illust.visible)
+      return null;
     const url =
       detail.illust.page_count == 1
         ? type == 'original'
@@ -39,7 +41,7 @@ export class PixivApiService {
     return await PixivAPI.downloadFile(url);
   }
 
-  async getLatestIllusts() {
+  async getLatestIllusts(isPrivate: number) {
     const list = [];
     const queryAsync = (pid, index) => {
       return new Promise((resolve, reject) => {
@@ -51,7 +53,10 @@ export class PixivApiService {
     };
     const check = async (url?: string) => {
       let flag = false;
-      const json = await PixivAPI.getBookmarksFromUrl(url);
+      const json = await PixivAPI.getBookmarksFromUrl(url, isPrivate != 0);
+      if (json) {
+        return json;
+      }
       const promises = [];
       json.illusts.forEach((illust, index) => {
         promises.push(queryAsync(illust.id, index));

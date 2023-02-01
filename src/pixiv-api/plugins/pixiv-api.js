@@ -33,7 +33,7 @@ export class PixivAPI {
       await this.refreshToken();
     }
   };
-  static getBookmarksFromUrl = async (url = null) => {
+  static getBookmarksFromUrl = async (url = null, isPrivate = false) => {
     if (!ready) {
       console.log('Token Expired!! Try Refresh.'.yellow);
       await this.refreshToken();
@@ -41,10 +41,17 @@ export class PixivAPI {
     let json;
     try {
       if (url) json = await api.requestUrl(url);
-      else json = await api.userBookmarksIllust(api.authInfo().user.id);
+      else
+        json = await api.userBookmarksIllust(
+          api.authInfo().user.id,
+          isPrivate ? { restrict: 'private' } : {},
+        );
       return json;
     } catch (err) {
-      return await this.processException(err, this.getBookmarksFromUrl, [url]);
+      return await this.processException(err, this.getBookmarksFromUrl, [
+        url,
+        isPrivate,
+      ]);
     }
   };
 

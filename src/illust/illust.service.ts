@@ -347,7 +347,7 @@ export class IllustService {
     let targetPoly = await this.polyRepository.findOne({
       where: {
         type: type,
-        parent: !parent || parent == '' ? null : parent,
+        parent: parent || null,
         name: name,
       },
       relations: {
@@ -357,7 +357,7 @@ export class IllustService {
     if (!targetPoly) {
       targetPoly = new Poly();
       targetPoly.name = name;
-      targetPoly.parent = !parent || parent == '' ? null : parent;
+      targetPoly.parent = parent || null;
       targetPoly.type = type;
       targetPoly.illusts = [];
     }
@@ -408,7 +408,7 @@ export class IllustService {
     let targetPoly = await this.polyRepository.findOne({
       where: {
         type: type,
-        parent: !parent || parent == '' ? null : parent,
+        parent: parent || null,
         name: name,
       },
       relations: {
@@ -418,7 +418,7 @@ export class IllustService {
     if (!targetPoly) {
       targetPoly = new Poly();
       targetPoly.name = name;
-      targetPoly.parent = !parent || parent == '' ? null : parent;
+      targetPoly.parent = parent || null;
       targetPoly.type = type;
       targetPoly.illusts = [];
     }
