@@ -1,12 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, SelectQueryBuilder } from 'typeorm';
+import { Not, Repository, SelectQueryBuilder } from 'typeorm';
 import { IllustDto } from './dto/illust.dto';
 import { Illust } from './entities/illust.entities';
 import { Meta } from './entities/meta.entities';
 import { Poly } from './entities/poly.entities';
 import { RemoteBase } from './entities/remote_base.entities';
-import { QueryHelper } from './util/queryHelper';
 
 @Injectable()
 export class IllustService {
@@ -21,19 +20,19 @@ export class IllustService {
     private readonly remoteBaseRepository: Repository<RemoteBase>,
   ) {}
 
-  async getPixivEnum(row: string, desc: number) {
+  async getPixivEnum(row: string, desc: boolean) {
     const results: any[] = await this.metaRepository
       .createQueryBuilder('meta')
       .select(row)
       .addSelect('COUNT(*)', 'count')
       .where(':row IS NOT NULL', { row: row })
       .groupBy(row)
-      .orderBy(row, desc != 0 ? 'DESC' : 'ASC')
+      .orderBy(row, desc ? 'DESC' : 'ASC')
       .getRawMany();
     return results;
   }
 
-  async getIllustEnum(row: string, desc: number, requiredType?: string) {
+  async getIllustEnum(row: string, desc: boolean, requiredType?: string) {
     let queryBuilder = this.illustRepository
       .createQueryBuilder()
       .select(row)
@@ -46,12 +45,12 @@ export class IllustService {
     }
     const results: any[] = await queryBuilder
       .groupBy(row)
-      .orderBy(row, desc != 0 ? 'DESC' : 'ASC')
+      .orderBy(row, desc ? 'DESC' : 'ASC')
       .getRawMany();
     return results;
   }
 
-  async getPolyEnum(row: string, desc: number, requiredType?: string) {
+  async getPolyEnum(row: string, desc: boolean, requiredType?: string) {
     let queryBuilder = this.polyRepository
       .createQueryBuilder()
       .select(row)
@@ -64,17 +63,17 @@ export class IllustService {
     }
     const results: any[] = await queryBuilder
       .groupBy(row)
-      .orderBy(row, desc != 0 ? 'DESC' : 'ASC')
+      .orderBy(row, desc ? 'DESC' : 'ASC')
       .getRawMany();
     return results;
   }
 
-  async getIllustListByStdQuery(
-    conditionJson: string,
+  async getIllustListByQuery(
+    conditionObj: object,
     limit?: number,
     offset?: number,
     orderAs?: string,
-    orderDesc?: number,
+    orderDesc?: boolean,
   ) {
     let querybuilder: SelectQueryBuilder<Illust> = this.illustRepository
       .createQueryBuilder()
@@ -83,7 +82,6 @@ export class IllustService {
       .leftJoinAndSelect('Illust.remote_base', 'remote_base')
       .leftJoinAndSelect('Illust.thum_base', 'thum_base')
       .where('Illust.id IS NOT NULL');
-    const conditionObj = JSON.parse(conditionJson);
     Object.keys(conditionObj).forEach((colName, index) => {
       if (conditionObj[colName].length >= 1)
         querybuilder = querybuilder.andWhere(
@@ -94,7 +92,7 @@ export class IllustService {
         );
     });
     const results = await querybuilder
-      .orderBy(orderAs, orderDesc != 0 ? 'DESC' : 'ASC')
+      .orderBy(orderAs, orderDesc ? 'DESC' : 'ASC')
       .addOrderBy('meta.page', 'ASC')
       .skip(offset)
       .take(limit)
@@ -102,14 +100,13 @@ export class IllustService {
     return results;
   }
 
-  async getIllustListCountByStdQuery(conditionJson: string) {
+  async getIllustListCountByQuery(conditionObj: object) {
     let querybuilder: SelectQueryBuilder<Illust> = this.illustRepository
       .createQueryBuilder()
       .select('COUNT(Illust.id)', 'count')
       .leftJoin('Illust.meta', 'meta')
       .leftJoin('Illust.poly', 'poly')
       .where('Illust.id IS NOT NULL');
-    const conditionObj = JSON.parse(conditionJson);
     Object.keys(conditionObj).forEach((colName, index) => {
       if (conditionObj[colName].length >= 1)
         querybuilder = querybuilder.andWhere(
@@ -124,54 +121,88 @@ export class IllustService {
     return results;
   }
 
-  async getIllustListByFind(
-    conditionJson: string,
-    limit?: number,
-    offset?: number,
-    orderAs?: string,
-    orderDesc?: number,
-  ) {
-    const conditionCartesianProd =
-      QueryHelper.getConditionCartesianProd(conditionJson);
-    const results: any[] = await this.illustRepository.find({
-      where: conditionCartesianProd,
-      relations: {
-        meta: true,
-      },
-      skip: offset,
-      take: limit,
-      order: orderAs
-        ? {
-            [orderAs]: orderDesc != 0 ? 'DESC' : 'ASC',
-          }
-        : null,
-    });
-    return results;
-  }
-
-  async getPolyList(withIllust: number, type: string) {
+  async getPolyList(withIllust: boolean, type: string) {
+    if (type == 'picolt' && withIllust) {
+      const result = await this.polyRepository.find({
+        where: {
+          type: type,
+          illusts: {
+            type: 'pixiv',
+          },
+        },
+        relations: {
+          illusts: {
+            meta: true,
+            remote_base: true,
+            thum_base: true,
+          },
+        },
+        order: {
+          parent: 'ASC',
+          name: 'ASC',
+          illusts: {
+            meta: {
+              pid: 'ASC',
+              page: 'ASC',
+            },
+            id: 'ASC',
+          },
+        },
+      });
+      const result2 = await this.polyRepository.find({
+        where: {
+          type: type,
+          illusts: {
+            type: Not('pixiv'),
+          },
+        },
+        relations: {
+          illusts: {
+            remote_base: true,
+            thum_base: true,
+          },
+        },
+        order: {
+          parent: 'ASC',
+          name: 'ASC',
+          illusts: {
+            id: 'ASC',
+          },
+        },
+      });
+      result2.forEach((poly) => {
+        const cur = result.find((value) => {
+          return value.id == poly.id;
+        });
+        if (cur) cur.illusts.push(...poly.illusts);
+      });
+      return result;
+    }
     const result = await this.polyRepository.find({
       where: type
         ? {
             type: type,
           }
         : {},
-      relations:
-        withIllust != 0
-          ? {
-              illusts: {
-                meta: true,
-              },
-            }
-          : {},
+      relations: withIllust
+        ? {
+            illusts: {
+              meta: true,
+              remote_base: true,
+              thum_base: true,
+            },
+          }
+        : {},
       order: {
+        type: 'ASC',
         parent: 'ASC',
         name: 'ASC',
         illusts: {
           meta: {
             pid: 'ASC',
-            page: 'DESC',
+            page: 'ASC',
           },
+          id: 'ASC',
         },
       },
     });
@@ -219,8 +250,8 @@ export class IllustService {
 
   async updateIllusts(
     illusts: IllustDto[],
-    addIfNotFound: number,
-    byMatch: number,
+    addIfNotFound: boolean,
+    byMatch: boolean,
   ) {
     const resp_list = [];
     for (const illust of illusts) {
@@ -233,20 +264,19 @@ export class IllustService {
         continue;
       }
       const targetMeta = await this.metaRepository.findOne({
-        where:
-          byMatch != 0
-            ? { pid: illust.meta.pid, page: illust.meta.page }
-            : {
-                illust: {
-                  id: illust.id,
-                },
+        where: byMatch
+          ? { pid: illust.meta.pid, page: illust.meta.page }
+          : {
+              illust: {
+                id: illust.id,
               },
+            },
         relations: {
           illust: true,
         },
       });
       if (!targetMeta) {
-        if (addIfNotFound == 0) {
+        if (!addIfNotFound) {
           resp_list.push({
             bid: illust.bid,
             status: 'ignore',
@@ -341,7 +371,7 @@ export class IllustService {
     type: string,
     parent: string,
     name: string,
-    byMatch: number,
+    byMatch: boolean,
   ) {
     const resp_list = [];
     let targetPoly = await this.polyRepository.findOne({
@@ -362,28 +392,27 @@ export class IllustService {
       targetPoly.illusts = [];
     }
     for (const illust of illusts) {
-      const targetMeta = await this.metaRepository.findOne({
-        where:
-          byMatch != 0
-            ? { pid: illust.meta.pid, page: illust.meta.page }
-            : {
-                illust: {
-                  id: illust.id,
-                },
+      const targetIllust = await this.illustRepository.findOne({
+        where: byMatch
+          ? {
+              meta: {
+                pid: illust.meta.pid,
+                page: illust.meta.page,
               },
-        relations: {
-          illust: true,
-        },
+            }
+          : {
+              id: illust.id,
+            },
       });
-      if (!targetMeta) {
+      if (!targetIllust) {
         resp_list.push({
           bid: illust.bid,
           status: 'ignore',
-          message: 'META Not Found.',
+          message: 'Illust Not Found.',
         });
         continue;
       } else {
-        targetPoly.illusts.push(targetMeta.illust);
+        targetPoly.illusts.push(targetIllust);
         try {
           await this.polyRepository.save(targetPoly);
           resp_list.push({ bid: illust.bid, status: 'success', message: 'OK' });
@@ -400,7 +429,7 @@ export class IllustService {
   }
 
   async updatePolyByCondition(
-    conditionJson: string,
+    conditionObj: object,
     type: string,
     parent: string,
     name: string,
@@ -430,7 +459,6 @@ export class IllustService {
       .leftJoin('Illust.thum_base', 'thum_base')
       .select('Illust.id')
       .where('Illust.id IS NOT NULL');
-    const conditionObj = JSON.parse(conditionJson);
     Object.keys(conditionObj).forEach((colName, index) => {
       if (conditionObj[colName].length >= 1)
         querybuilder = querybuilder.andWhere(
@@ -442,13 +470,10 @@ export class IllustService {
     });
     const results = await querybuilder.getMany();
     for (const illust of results) {
-      const targetMeta = await this.metaRepository.findOne({
-        where: { id: illust.id },
-        relations: {
-          illust: true,
-        },
+      const targetIllust = await this.illustRepository.findOneBy({
+        id: illust.id,
       });
-      targetPoly.illusts.push(targetMeta.illust);
+      targetPoly.illusts.push(targetIllust);
       try {
         await this.polyRepository.save(targetPoly);
       } catch (err) {
@@ -458,17 +483,16 @@ export class IllustService {
     return { code: 200000, msg: 'process end' };
   }
 
-  async getRemoteBaseList(withIllust: number) {
+  async getRemoteBaseList(withIllust: boolean) {
     const result = await this.remoteBaseRepository.find({
       where: {},
-      relations:
-        withIllust != 0
-          ? {
-              illusts: {
-                meta: true,
-              },
-            }
-          : {},
+      relations: withIllust
+        ? {
+            illusts: {
+              meta: true,
+            },
+          }
+        : {},
       order: {
         name: 'ASC',
         illusts: {

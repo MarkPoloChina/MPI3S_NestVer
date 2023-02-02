@@ -22,10 +22,14 @@ export class IllustController {
   @Get('enum')
   illustEnum(
     @Query('row') row: string,
-    @Query('desc') desc: number,
+    @Query('desc') desc: string,
     @Query('requiredType') requiredType?: string,
   ) {
-    return this.illustService.getIllustEnum(row, desc, requiredType);
+    return this.illustService.getIllustEnum(
+      row,
+      !!parseInt(desc),
+      requiredType,
+    );
   }
 
   @Get('list')
@@ -34,20 +38,22 @@ export class IllustController {
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
     @Query('orderAs') orderAs?: string,
-    @Query('orderDesc') orderDesc?: number,
+    @Query('orderDesc') orderDesc?: string,
   ) {
-    return this.illustService.getIllustListByStdQuery(
-      conditionJson,
+    return this.illustService.getIllustListByQuery(
+      JSON.parse(conditionJson),
       limit,
       offset,
       orderAs,
-      orderDesc,
+      !!parseInt(orderDesc),
     );
   }
 
   @Get('list/count')
   async illustListCount(@Query('conditionJson') conditionJson: string) {
-    return this.illustService.getIllustListCountByStdQuery(conditionJson);
+    return this.illustService.getIllustListCountByQuery(
+      JSON.parse(conditionJson),
+    );
   }
 
   @Post('list')
@@ -58,38 +64,48 @@ export class IllustController {
   @Put('list')
   updateIllusts(
     @Body() illusts: IllustDto[],
-    @Query('byMatch') byMatch: number,
-    @Query('addIfNotFound') addIfNotFound: number,
+    @Query('byMatch') byMatch: string,
+    @Query('addIfNotFound') addIfNotFound: string,
   ) {
-    return this.illustService.updateIllusts(illusts, addIfNotFound, byMatch);
+    return this.illustService.updateIllusts(
+      illusts,
+      !!parseInt(addIfNotFound),
+      !!parseInt(byMatch),
+    );
   }
 
   @Get('poly/list')
   async illustPolyList(
-    @Query('withIllust') withIllust?: number,
+    @Query('withIllust') withIllust?: string,
     @Query('type') type?: string,
   ) {
-    return this.illustService.getPolyList(withIllust, type);
+    return this.illustService.getPolyList(!!parseInt(withIllust), type);
   }
 
   @Post('poly/list')
   async updatePoly(
     @Body() illusts: IllustDto[],
-    @Query('byMatch') byMatch: number,
+    @Query('byMatch') byMatch: string,
     @Query('type') type: string,
     @Query('parent') parent: string,
     @Query('name') name: string,
     @Query('conditionJson') conditionJson: string,
-    @Query('byCondition') byCondition: number,
+    @Query('byCondition') byCondition: string,
   ) {
-    return byCondition
+    return parseInt(byCondition)
       ? this.illustService.updatePolyByCondition(
-          conditionJson,
+          JSON.parse(conditionJson),
           type,
           parent,
           name,
         )
-      : this.illustService.updatePoly(illusts, type, parent, name, byMatch);
+      : this.illustService.updatePoly(
+          illusts,
+          type,
+          parent,
+          name,
+          !!parseInt(byMatch),
+        );
   }
 
   @Delete('poly/list')
@@ -108,15 +124,15 @@ export class IllustController {
   @Get('poly/enum')
   async illustPolyEnum(
     @Query('row') row: string,
-    @Query('desc') desc: number,
+    @Query('desc') desc: string,
     @Query('requiredType') requiredType?: string,
   ) {
-    return this.illustService.getPolyEnum(row, desc, requiredType);
+    return this.illustService.getPolyEnum(row, !!parseInt(desc), requiredType);
   }
 
   @Get('remote-base/list')
-  async remoteBase(@Query('withIllust') withIllust: number) {
-    return this.illustService.getRemoteBaseList(withIllust);
+  async remoteBase(@Query('withIllust') withIllust: string) {
+    return this.illustService.getRemoteBaseList(!!parseInt(withIllust));
   }
 
   // @Get('test')
