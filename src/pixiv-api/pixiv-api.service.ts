@@ -41,7 +41,7 @@ export class PixivApiService {
     return await PixivAPI.downloadFile(url);
   }
 
-  async getLatestIllusts(isPrivate: number) {
+  async getLatestIllusts(isPrivate: boolean) {
     const list = [];
     const queryAsync = (pid, index) => {
       return new Promise((resolve, reject) => {
@@ -53,10 +53,7 @@ export class PixivApiService {
     };
     const check = async (url?: string) => {
       let flag = false;
-      const json = await PixivAPI.getBookmarksFromUrl(url, isPrivate != 0);
-      if (json) {
-        return json;
-      }
+      const json = await PixivAPI.getBookmarksFromUrl(url, isPrivate);
       const promises = [];
       json.illusts.forEach((illust, index) => {
         promises.push(queryAsync(illust.id, index));
