@@ -64,14 +64,9 @@ export class IllustController {
   @Put('list')
   updateIllusts(
     @Body() illusts: IllustDto[],
-    @Query('byMatch') byMatch: string,
     @Query('addIfNotFound') addIfNotFound: string,
   ) {
-    return this.illustService.updateIllusts(
-      illusts,
-      !!parseInt(addIfNotFound),
-      !!parseInt(byMatch),
-    );
+    return this.illustService.updateIllusts(illusts, !!parseInt(addIfNotFound));
   }
 
   @Get('poly/list')
@@ -85,7 +80,6 @@ export class IllustController {
   @Post('poly/list')
   async updatePoly(
     @Body() illusts: IllustDto[],
-    @Query('byMatch') byMatch: string,
     @Query('type') type: string,
     @Query('parent') parent: string,
     @Query('name') name: string,
@@ -99,13 +93,7 @@ export class IllustController {
           parent,
           name,
         )
-      : this.illustService.updatePoly(
-          illusts,
-          type,
-          parent,
-          name,
-          !!parseInt(byMatch),
-        );
+      : this.illustService.updatePoly(illusts, type, parent, name);
   }
 
   @Delete('poly/list')

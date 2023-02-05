@@ -3,6 +3,7 @@ export interface IllustDto {
   type: string | null;
   star: number | null;
   date: Date | null;
+  tag: Array<string> | null;
   meta: {
     pid: number;
     page: number;

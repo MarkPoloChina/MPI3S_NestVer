@@ -11,6 +11,7 @@ import {
 import { Meta } from './meta.entities';
 import { Poly } from './poly.entities';
 import { RemoteBase } from './remote_base.entities';
+import { Tag } from './tag.entities';
 
 @Entity()
 export class Illust {
@@ -40,6 +41,9 @@ export class Illust {
 
   @ManyToMany(() => Poly, (poly) => poly.illusts)
   poly: Poly[];
+
+  @ManyToMany(() => Tag, (tag) => tag.illusts)
+  tag: Tag[];
 
   @OneToOne(() => Meta, (meta) => meta.illust, { cascade: true })
   meta: Meta;

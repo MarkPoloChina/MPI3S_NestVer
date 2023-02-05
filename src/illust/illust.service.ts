@@ -6,6 +6,7 @@ import { Illust } from './entities/illust.entities';
 import { Meta } from './entities/meta.entities';
 import { Poly } from './entities/poly.entities';
 import { RemoteBase } from './entities/remote_base.entities';
+import { Tag } from './entities/tag.entities';
 
 @Injectable()
 export class IllustService {
@@ -18,6 +19,8 @@ export class IllustService {
     private readonly polyRepository: Repository<Poly>,
     @InjectRepository(RemoteBase)
     private readonly remoteBaseRepository: Repository<RemoteBase>,
+    @InjectRepository(Tag)
+    private readonly tagRepository: Repository<Tag>,
   ) {}
 
   async getPixivEnum(row: string, desc: boolean) {
@@ -79,6 +82,7 @@ export class IllustService {
       .createQueryBuilder()
       .leftJoinAndSelect('Illust.meta', 'meta')
       .leftJoinAndSelect('Illust.poly', 'poly')
+      .leftJoinAndSelect('Illust.tag', 'tag')
       .leftJoinAndSelect('Illust.remote_base', 'remote_base')
       .leftJoinAndSelect('Illust.thum_base', 'thum_base')
       .where('Illust.id IS NOT NULL');
@@ -106,6 +110,7 @@ export class IllustService {
       .select('COUNT(Illust.id)', 'count')
       .leftJoin('Illust.meta', 'meta')
       .leftJoin('Illust.poly', 'poly')
+      .leftJoin('Illust.tag', 'tag')
       .where('Illust.id IS NOT NULL');
     Object.keys(conditionObj).forEach((colName, index) => {
       if (conditionObj[colName].length >= 1)
@@ -248,39 +253,39 @@ export class IllustService {
     return { code: 200000, msg: 'process end', data: resp_list };
   }
 
-  async updateIllusts(
-    illusts: IllustDto[],
-    addIfNotFound: boolean,
-    byMatch: boolean,
-  ) {
+  async updateIllusts(illusts: IllustDto[], addIfNotFound: boolean) {
     const resp_list = [];
     for (const illust of illusts) {
-      if (!illust.meta) {
-        resp_list.push({
-          bid: illust.bid,
-          status: 'fault',
-          message: 'NO Meta Represent.',
+      let targetIllust: Illust;
+      if (illust.id)
+        targetIllust = await this.illustRepository.findOne({
+          where: {
+            id: illust.id,
+          },
+          relations: {
+            meta: true,
+            tag: true,
+          },
         });
-        continue;
-      }
-      const targetMeta = await this.metaRepository.findOne({
-        where: byMatch
-          ? { pid: illust.meta.pid, page: illust.meta.page }
-          : {
-              illust: {
-                id: illust.id,
-              },
+      else if (illust.meta)
+        targetIllust = await this.illustRepository.findOne({
+          where: {
+            meta: {
+              pid: illust.meta.pid,
+              page: illust.meta.page,
             },
-        relations: {
-          illust: true,
-        },
-      });
-      if (!targetMeta) {
+          },
+          relations: {
+            meta: true,
+            tag: true,
+          },
+        });
+      if (!targetIllust) {
         if (!addIfNotFound) {
           resp_list.push({
             bid: illust.bid,
             status: 'ignore',
-            message: 'META Not Found.',
+            message: 'Illust Not Found.',
           });
           continue;
         } else {
@@ -309,13 +314,31 @@ export class IllustService {
           }
         }
       } else {
-        if (illust.star) targetMeta.illust.star = illust.star;
-        if (illust.date) targetMeta.illust.date = illust.date;
-        if (illust.meta.title) targetMeta.title = illust.meta.title;
-        if (illust.meta.limit) targetMeta.limit = illust.meta.limit;
+        if (illust.star) targetIllust.star = illust.star;
+        if (illust.date) targetIllust.date = illust.date;
+        if (illust.meta.title) targetIllust.meta.title = illust.meta.title;
+        if (illust.meta.limit) targetIllust.meta.limit = illust.meta.limit;
+        if (illust.tag && illust.tag.length >= 1) {
+          for (const ele of illust.tag) {
+            if (
+              targetIllust.tag.findIndex((value) => {
+                return value.name == ele;
+              }) == -1
+            ) {
+              let targetTag: Tag;
+              targetTag = await this.tagRepository.findOneBy({ name: ele });
+              if (!targetTag) {
+                targetTag = new Tag();
+                targetTag.name = ele;
+                targetTag.type = 'simple';
+                await this.tagRepository.save(targetTag);
+              }
+              targetIllust.tag.push(targetTag);
+            }
+          }
+        }
         try {
-          await this.metaRepository.save(targetMeta);
-          await this.illustRepository.save(targetMeta.illust);
+          await this.illustRepository.save(targetIllust);
           resp_list.push({
             bid: illust.bid,
             status: 'success',
@@ -371,7 +394,6 @@ export class IllustService {
     type: string,
     parent: string,
     name: string,
-    byMatch: boolean,
   ) {
     const resp_list = [];
     let targetPoly = await this.polyRepository.findOne({
@@ -392,18 +414,23 @@ export class IllustService {
       targetPoly.illusts = [];
     }
     for (const illust of illusts) {
-      const targetIllust = await this.illustRepository.findOne({
-        where: byMatch
-          ? {
-              meta: {
-                pid: illust.meta.pid,
-                page: illust.meta.page,
-              },
-            }
-          : {
-              id: illust.id,
-            },
-      });
+      // 请仿照下面进行优化！！！
+      let targetIllust;
+      if (illust.id)
+        targetIllust = await this.illustRepository.findOneBy({
+          id: illust.id,
+        });
+      else if (illust.meta)
+        targetIllust = await this.illustRepository.findOneBy({
+          meta: {
+            pid: illust.meta.pid,
+            page: illust.meta.page,
+          },
+        });
+      else if (illust.remote_info)
+        targetIllust = await this.illustRepository.findOneBy({
+          remote_endpoint: illust.remote_info.remote_endpoint,
+        });
       if (!targetIllust) {
         resp_list.push({
           bid: illust.bid,
