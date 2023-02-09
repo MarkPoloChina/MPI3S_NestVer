@@ -314,7 +314,7 @@ export class IllustService {
           }
         }
       } else {
-        if (illust.star) targetIllust.star = illust.star;
+        if (illust.star || illust.star === 0) targetIllust.star = illust.star;
         if (illust.date) targetIllust.date = illust.date;
         if (illust.meta.title) targetIllust.meta.title = illust.meta.title;
         if (illust.meta.limit) targetIllust.meta.limit = illust.meta.limit;
