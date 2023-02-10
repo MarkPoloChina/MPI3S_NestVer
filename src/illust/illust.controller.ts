@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 // import { FileInterceptor } from '@nestjs/platform-express';
 import { IllustDto } from './dto/illust.dto';
+import { RemoteBaseDto } from './dto/remote_base.dto';
 import { IllustService } from './illust.service';
 // import { Response } from 'express';
 
@@ -123,6 +124,10 @@ export class IllustController {
     return this.illustService.getRemoteBaseList(!!parseInt(withIllust));
   }
 
+  @Post('remote-base')
+  async updateRemoteBase(@Body() remoteBase: RemoteBaseDto) {
+    return this.illustService.coverRemoteBase(remoteBase);
+  }
   // @Get('test')
   // test() {
   //   this.illustService.newIllust();

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Not, Repository, SelectQueryBuilder } from 'typeorm';
 import { IllustDto } from './dto/illust.dto';
+import { RemoteBaseDto } from './dto/remote_base.dto';
 import { Illust } from './entities/illust.entities';
 import { Meta } from './entities/meta.entities';
 import { Poly } from './entities/poly.entities';
@@ -528,5 +529,22 @@ export class IllustService {
       },
     });
     return result;
+  }
+
+  async coverRemoteBase(remoteBase: RemoteBaseDto) {
+    let targetRemoteBase: RemoteBase;
+    if (remoteBase.id)
+      targetRemoteBase = await this.remoteBaseRepository.findOneBy({
+        id: remoteBase.id,
+      });
+    else targetRemoteBase = new RemoteBase();
+    targetRemoteBase.name = remoteBase.name;
+    targetRemoteBase.url = remoteBase.url;
+    try {
+      await this.remoteBaseRepository.save(targetRemoteBase);
+      return { code: 200000, msg: 'process end' };
+    } catch (err) {
+      return { code: 500000, msg: `${err}` };
+    }
   }
 }
