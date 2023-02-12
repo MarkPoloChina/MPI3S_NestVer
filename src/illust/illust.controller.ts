@@ -21,16 +21,8 @@ export class IllustController {
   constructor(private readonly illustService: IllustService) {}
 
   @Get('enum')
-  illustEnum(
-    @Query('row') row: string,
-    @Query('desc') desc: string,
-    @Query('requiredType') requiredType?: string,
-  ) {
-    return this.illustService.getIllustEnum(
-      row,
-      !!parseInt(desc),
-      requiredType,
-    );
+  illustEnum(@Query('row') row: string, @Query('desc') desc: string) {
+    return this.illustService.getIllustEnum(row, !!parseInt(desc));
   }
 
   @Get('list')

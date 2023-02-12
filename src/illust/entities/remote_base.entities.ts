@@ -6,15 +6,18 @@ export class RemoteBase {
   @PrimaryGeneratedColumn({ type: 'int' })
   id: number;
 
-  @Column({ type: 'varchar', nullable: false })
+  @Column({ type: 'varchar', nullable: false, default: '' })
+  type: string;
+
+  @Column({ type: 'varchar', nullable: false, unique: true })
   name: string;
 
   @Column({ type: 'varchar', nullable: false })
-  url: string;
+  origin_url: string;
+
+  @Column({ type: 'varchar', nullable: false })
+  thum_url: string;
 
   @OneToMany(() => Illust, (illust) => illust.remote_base)
   illusts: Illust[];
-
-  @OneToMany(() => Illust, (illust) => illust.thum_base)
-  illusts_thum: Illust[];
 }

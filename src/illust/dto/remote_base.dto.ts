@@ -1,5 +1,7 @@
 export interface RemoteBaseDto {
   id: number | null;
+  type: string;
   name: string;
-  url: string;
+  origin_url: string;
+  thum_url: string;
 }

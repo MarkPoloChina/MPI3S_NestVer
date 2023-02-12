@@ -36,18 +36,12 @@ export class IllustService {
     return results;
   }
 
-  async getIllustEnum(row: string, desc: boolean, requiredType?: string) {
-    let queryBuilder = this.illustRepository
+  async getIllustEnum(row: string, desc: boolean) {
+    const results: any[] = await this.illustRepository
       .createQueryBuilder()
       .select(row)
       .addSelect(`COUNT(${row})`, 'count')
-      .where(`${row} IS NOT NULL`);
-    if (requiredType) {
-      queryBuilder = queryBuilder.andWhere('type = :type', {
-        type: requiredType,
-      });
-    }
-    const results: any[] = await queryBuilder
+      .where(`${row} IS NOT NULL`)
       .groupBy(row)
       .orderBy(row, desc ? 'DESC' : 'ASC')
       .getRawMany();
@@ -85,7 +79,6 @@ export class IllustService {
       .leftJoinAndSelect('Illust.poly', 'poly')
       .leftJoinAndSelect('Illust.tag', 'tag')
       .leftJoinAndSelect('Illust.remote_base', 'remote_base')
-      .leftJoinAndSelect('Illust.thum_base', 'thum_base')
       .where('Illust.id IS NOT NULL');
     Object.keys(conditionObj).forEach((colName, index) => {
       if (conditionObj[colName].length >= 1)
@@ -112,6 +105,7 @@ export class IllustService {
       .leftJoin('Illust.meta', 'meta')
       .leftJoin('Illust.poly', 'poly')
       .leftJoin('Illust.tag', 'tag')
+      .leftJoin('Illust.remote_base', 'remote_base')
       .where('Illust.id IS NOT NULL');
     Object.keys(conditionObj).forEach((colName, index) => {
       if (conditionObj[colName].length >= 1)
@@ -133,14 +127,15 @@ export class IllustService {
         where: {
           type: type,
           illusts: {
-            type: 'pixiv',
+            remote_base: {
+              name: 'Pixiv',
+            },
           },
         },
         relations: {
           illusts: {
             meta: true,
             remote_base: true,
-            thum_base: true,
           },
         },
         order: {
@@ -159,13 +154,14 @@ export class IllustService {
         where: {
           type: type,
           illusts: {
-            type: Not('pixiv'),
+            remote_base: {
+              name: Not('pixiv'),
+            },
           },
         },
         relations: {
           illusts: {
             remote_base: true,
-            thum_base: true,
           },
         },
         order: {
@@ -195,7 +191,6 @@ export class IllustService {
             illusts: {
               meta: true,
               remote_base: true,
-              thum_base: true,
             },
           }
         : {},
@@ -219,7 +214,6 @@ export class IllustService {
     const resp_list = [];
     for (const illust of illusts) {
       const newIllust = new Illust();
-      newIllust.type = illust.type;
       newIllust.star = illust.star;
       newIllust.date = illust.date;
       if (illust.meta) {
@@ -229,24 +223,24 @@ export class IllustService {
         newIllust.meta.title = illust.meta.title;
         newIllust.meta.limit = illust.meta.limit;
       }
-      if (illust.remote_info) {
+      newIllust.remote_endpoint = illust.remote_endpoint || null;
+      if (illust.remote_base.id)
         newIllust.remote_base = await this.remoteBaseRepository.findOneBy({
-          id: illust.remote_info.remote_base_id,
+          id: illust.remote_base.id,
         });
-        newIllust.thum_base = await this.remoteBaseRepository.findOneBy({
-          id: illust.remote_info.thum_base_id,
+      else if (illust.remote_base.name)
+        newIllust.remote_base = await this.remoteBaseRepository.findOneBy({
+          name: illust.remote_base.name,
         });
-        newIllust.remote_endpoint = illust.remote_info.remote_endpoint;
-        newIllust.thum_endpoint = illust.remote_info.thum_endpoint;
-        newIllust.remote_type = illust.remote_info.remote_type;
-      }
       try {
         await this.illustRepository.save(newIllust);
         resp_list.push({ bid: illust.bid, status: 'success', message: 'OK' });
       } catch (err) {
         resp_list.push({
           bid: illust.bid,
-          status: 'fault',
+          status: `${err}`.startsWith('QueryFailedError: Duplicate entry')
+            ? 'conflict'
+            : 'fault',
           message: `${err}`,
         });
       }
@@ -291,7 +285,6 @@ export class IllustService {
           continue;
         } else {
           const newIllust = new Illust();
-          newIllust.type = illust.type;
           newIllust.star = illust.star;
           newIllust.date = illust.date;
           newIllust.meta = new Meta();
@@ -299,6 +292,14 @@ export class IllustService {
           newIllust.meta.page = illust.meta.page;
           newIllust.meta.title = illust.meta.title;
           newIllust.meta.limit = illust.meta.limit;
+          if (illust.remote_base.id)
+            newIllust.remote_base = await this.remoteBaseRepository.findOneBy({
+              id: illust.remote_base.id,
+            });
+          else if (illust.remote_base.name)
+            newIllust.remote_base = await this.remoteBaseRepository.findOneBy({
+              name: illust.remote_base.name,
+            });
           try {
             await this.illustRepository.save(newIllust);
             resp_list.push({
@@ -309,7 +310,9 @@ export class IllustService {
           } catch (err) {
             resp_list.push({
               bid: illust.bid,
-              status: 'fault',
+              status: `${err}`.startsWith('QueryFailedError: Duplicate entry')
+                ? 'conflict'
+                : 'fault',
               message: `${err}`,
             });
           }
@@ -348,7 +351,9 @@ export class IllustService {
         } catch (err) {
           resp_list.push({
             bid: illust.bid,
-            status: 'fault',
+            status: `${err}`.startsWith('QueryFailedError: Duplicate entry')
+              ? 'conflict'
+              : 'fault',
             message: `${err}`,
           });
         }
@@ -416,7 +421,7 @@ export class IllustService {
     }
     for (const illust of illusts) {
       // 请仿照下面进行优化！！！
-      let targetIllust;
+      let targetIllust: Illust;
       if (illust.id)
         targetIllust = await this.illustRepository.findOneBy({
           id: illust.id,
@@ -428,9 +433,9 @@ export class IllustService {
             page: illust.meta.page,
           },
         });
-      else if (illust.remote_info)
+      else if (illust.remote_endpoint)
         targetIllust = await this.illustRepository.findOneBy({
-          remote_endpoint: illust.remote_info.remote_endpoint,
+          remote_endpoint: illust.remote_endpoint,
         });
       if (!targetIllust) {
         resp_list.push({
@@ -484,7 +489,6 @@ export class IllustService {
       .leftJoin('Illust.meta', 'meta')
       .leftJoin('Illust.poly', 'poly')
       .leftJoin('Illust.remote_base', 'remote_base')
-      .leftJoin('Illust.thum_base', 'thum_base')
       .select('Illust.id')
       .where('Illust.id IS NOT NULL');
     Object.keys(conditionObj).forEach((colName, index) => {
@@ -539,7 +543,9 @@ export class IllustService {
       });
     else targetRemoteBase = new RemoteBase();
     targetRemoteBase.name = remoteBase.name;
-    targetRemoteBase.url = remoteBase.url;
+    targetRemoteBase.type = remoteBase.type;
+    targetRemoteBase.origin_url = remoteBase.origin_url;
+    targetRemoteBase.thum_url = remoteBase.thum_url;
     try {
       await this.remoteBaseRepository.save(targetRemoteBase);
       return { code: 200000, msg: 'process end' };
