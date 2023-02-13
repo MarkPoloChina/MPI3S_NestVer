@@ -1,13 +1,16 @@
 import {
+  Body,
   Controller,
   Get,
   HttpException,
   HttpStatus,
+  Put,
   Query,
   Res,
 } from '@nestjs/common';
 import { PixivApiService } from './pixiv-api.service';
 import { Response } from 'express';
+import { IllustDto } from 'src/illust/dto/illust.dto';
 
 @Controller('pixiv-api')
 export class PixivApiController {
@@ -56,6 +59,11 @@ export class PixivApiController {
       !!parseInt(isPrivate),
     );
     response.json(json);
+  }
+
+  @Put('pixiv-json/list')
+  async updateMeta(@Body() illust: IllustDto[]) {
+    return this.pixivApiService.updateMeta(illust);
   }
 
   @Get('blob/proxy')

@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { IllustDto } from 'src/illust/dto/illust.dto';
 import { Meta } from 'src/illust/entities/meta.entities';
 import { Repository } from 'typeorm';
+import { PixivIllustObjectDto } from './dto/pixiv-meta.dto';
 import { PixivAPI } from './plugins/pixiv-api';
 @Injectable()
 export class PixivApiService {
@@ -9,7 +11,8 @@ export class PixivApiService {
   private readonly metaRepository: Repository<Meta>;
 
   async getPixivBlob(pid: number, page: number, type: string) {
-    const detail = await PixivAPI.getIllustInfoById(pid);
+    const detail: { illust: PixivIllustObjectDto } =
+      await PixivAPI.getIllustInfoById(pid);
     if (!detail || page >= detail.illust.page_count || !detail.illust.visible)
       return null;
     if (detail.illust.page_count == 1) {
@@ -25,7 +28,8 @@ export class PixivApiService {
   }
 
   async getPixivUrl(pid: number, page: number, type: string) {
-    const detail = await PixivAPI.getIllustInfoById(pid);
+    const detail: { illust: PixivIllustObjectDto } =
+      await PixivAPI.getIllustInfoById(pid);
     if (!detail || page >= detail.illust.page_count || !detail.illust.visible)
       return null;
     const url =
@@ -43,7 +47,7 @@ export class PixivApiService {
 
   async getLatestIllusts(isPrivate: boolean) {
     const list = [];
-    const queryAsync = (pid, index) => {
+    const queryAsync = (pid: number, index: number) => {
       return new Promise((resolve, reject) => {
         this.metaRepository
           .findOne({ where: { pid: pid } })
@@ -53,7 +57,8 @@ export class PixivApiService {
     };
     const check = async (url?: string) => {
       let flag = false;
-      const json = await PixivAPI.getBookmarksFromUrl(url, isPrivate);
+      const json: { illusts: Array<PixivIllustObjectDto>; next_url: string } =
+        await PixivAPI.getBookmarksFromUrl(url, isPrivate);
       const promises = [];
       json.illusts.forEach((illust, index) => {
         promises.push(queryAsync(illust.id, index));
@@ -71,5 +76,36 @@ export class PixivApiService {
       }
     };
     return await check();
+  }
+
+  async updateMeta(illusts: IllustDto[]) {
+    const limitMap = {
+      0: 'normal',
+      1: 'R-18',
+      2: 'R-18G',
+    };
+    for (const illust of illusts) {
+      this.metaRepository
+        .findBy({
+          pid: illust.meta.pid,
+        })
+        .then(async (targetMeta) => {
+          if (!targetMeta) return;
+          const detail: { illust: PixivIllustObjectDto } =
+            await PixivAPI.getIllustInfoById(illust.meta.pid);
+          if (!detail || !detail.illust.visible) return;
+          targetMeta.forEach((meta) => {
+            meta.author = detail.illust.user.name;
+            meta.author_id = detail.illust.user.id;
+            meta.book_cnt = detail.illust.total_bookmarks;
+            meta.limit = limitMap[detail.illust.x_restrict];
+          });
+          this.metaRepository.save(targetMeta);
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    }
+    return { code: 200000, msg: 'request end' };
   }
 }
