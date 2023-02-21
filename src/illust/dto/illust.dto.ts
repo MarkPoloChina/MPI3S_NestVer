@@ -14,5 +14,4 @@ export interface IllustDto {
     id: number | null;
     name: string | null;
   };
-  bid: number | string;
 }

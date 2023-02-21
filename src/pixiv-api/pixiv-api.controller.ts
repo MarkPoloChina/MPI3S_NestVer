@@ -1,13 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  HttpException,
-  HttpStatus,
-  Put,
-  Query,
-  Res,
-} from '@nestjs/common';
+import { Body, Controller, Get, Put, Query, Res } from '@nestjs/common';
 import { PixivApiService } from './pixiv-api.service';
 import { Response } from 'express';
 import { IllustDto } from 'src/illust/dto/illust.dto';
@@ -23,17 +14,8 @@ export class PixivApiController {
     @Query('type') type: string,
     @Res() response: Response,
   ) {
-    if (!['square_medium', 'medium', 'original'].includes(type))
-      throw new HttpException('bad param', HttpStatus.BAD_REQUEST);
-    const blob = await this.pixivApiService.getPixivBlob(pid, page, type);
-    if (blob) {
-      response.setHeader(
-        'Cache-Control',
-        'public,max-age=' + 60 * 60 * 24 * 365,
-      );
-      response.end(blob);
-    } else
-      throw new HttpException('pid or page no found', HttpStatus.NOT_FOUND);
+    response.setHeader('Cache-Control', 'public,max-age=' + 60 * 60 * 24 * 365);
+    response.end(await this.pixivApiService.getPixivBlob(pid, page, type));
   }
 
   @Get('url')
@@ -42,12 +24,7 @@ export class PixivApiController {
     @Query('page') page: number,
     @Query('type') type: string,
   ) {
-    if (!['square_medium', 'medium', 'original'].includes(type))
-      throw new HttpException('bad param', HttpStatus.BAD_REQUEST);
-    const url = await this.pixivApiService.getPixivUrl(pid, page, type);
-    if (!url)
-      throw new HttpException('pid or page no found', HttpStatus.NOT_FOUND);
-    return url;
+    return this.pixivApiService.getPixivUrl(pid, page, type);
   }
 
   @Get('pixiv-json/latest')

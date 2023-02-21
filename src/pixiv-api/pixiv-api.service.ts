@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IllustDto } from 'src/illust/dto/illust.dto';
 import { Meta } from 'src/illust/entities/meta.entities';
@@ -11,10 +11,12 @@ export class PixivApiService {
   private readonly metaRepository: Repository<Meta>;
 
   async getPixivBlob(pid: number, page: number, type: string) {
+    if (!['square_medium', 'medium', 'original'].includes(type))
+      throw new HttpException('illegal type.', HttpStatus.BAD_REQUEST);
     const detail: { illust: PixivIllustObjectDto } =
       await PixivAPI.getIllustInfoById(pid);
     if (!detail || page >= detail.illust.page_count || !detail.illust.visible)
-      return null;
+      throw new HttpException('pid or page no found', HttpStatus.NOT_FOUND);
     if (detail.illust.page_count == 1) {
       if (type == 'original')
         return await PixivAPI.downloadFile(
@@ -28,10 +30,12 @@ export class PixivApiService {
   }
 
   async getPixivUrl(pid: number, page: number, type: string) {
+    if (!['square_medium', 'medium', 'original'].includes(type))
+      throw new HttpException('illegal type.', HttpStatus.BAD_REQUEST);
     const detail: { illust: PixivIllustObjectDto } =
       await PixivAPI.getIllustInfoById(pid);
     if (!detail || page >= detail.illust.page_count || !detail.illust.visible)
-      return null;
+      throw new HttpException('pid or page no found', HttpStatus.NOT_FOUND);
     const url =
       detail.illust.page_count == 1
         ? type == 'original'
@@ -106,6 +110,5 @@ export class PixivApiService {
           console.log(err);
         });
     }
-    return { code: 200000, msg: 'request end' };
   }
 }

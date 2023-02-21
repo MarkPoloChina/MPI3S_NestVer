@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 // import { FileInterceptor } from '@nestjs/platform-express';
 import { IllustDto } from './dto/illust.dto';
+import { IllustBatchDto } from './dto/illust_batch.dto';
 import { RemoteBaseDto } from './dto/remote_base.dto';
 import { IllustService } from './illust.service';
 // import { Response } from 'express';
@@ -20,77 +21,71 @@ import { IllustService } from './illust.service';
 export class IllustController {
   constructor(private readonly illustService: IllustService) {}
 
-  @Get('enum')
+  @Get('base/enum')
   illustEnum(@Query('row') row: string, @Query('desc') desc: string) {
     return this.illustService.getIllustEnum(row, !!parseInt(desc));
   }
 
-  @Get('list')
+  @Get('base/list')
   illustList(
     @Query('conditionJson') conditionJson: string,
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
-    @Query('orderAs') orderAs?: string,
-    @Query('orderDesc') orderDesc?: string,
+    @Query('orderAs') orderJson?: string,
   ) {
     return this.illustService.getIllustListByQuery(
       JSON.parse(conditionJson),
       limit,
       offset,
-      orderAs,
-      !!parseInt(orderDesc),
+      orderJson ? JSON.parse(orderJson) : undefined,
     );
   }
 
-  @Get('list/count')
-  async illustListCount(@Query('conditionJson') conditionJson: string) {
+  @Get('base/count')
+  illustListCount(@Query('conditionJson') conditionJson: string) {
     return this.illustService.getIllustListCountByQuery(
       JSON.parse(conditionJson),
     );
   }
 
-  @Post('list')
-  newIllusts(@Body() illusts: IllustDto[]) {
+  @Post('bases')
+  newIllusts(@Body() illusts: IllustBatchDto) {
     return this.illustService.newIllusts(illusts);
   }
 
-  @Put('list')
-  updateIllusts(
-    @Body() illusts: IllustDto[],
+  @Put('bases')
+  updateIllusts(@Body() illusts: IllustBatchDto) {
+    return this.illustService.updateIllusts(illusts);
+  }
+
+  @Put('base')
+  updateIllust(
+    @Body() illusts: IllustDto,
     @Query('addIfNotFound') addIfNotFound: string,
   ) {
-    return this.illustService.updateIllusts(illusts, !!parseInt(addIfNotFound));
+    return this.illustService.updateIllust(illusts, !!parseInt(addIfNotFound));
   }
 
   @Get('poly/list')
-  async illustPolyList(
+  illustPolyList(
     @Query('withIllust') withIllust?: string,
     @Query('type') type?: string,
+    @Query('orderAs') orderJson?: string,
   ) {
-    return this.illustService.getPolyList(!!parseInt(withIllust), type);
+    return this.illustService.getPolyList(
+      !!parseInt(withIllust),
+      type,
+      orderJson ? JSON.parse(orderJson) : undefined,
+    );
   }
 
-  @Post('poly/list')
-  async updatePoly(
-    @Body() illusts: IllustDto[],
-    @Query('type') type: string,
-    @Query('parent') parent: string,
-    @Query('name') name: string,
-    @Query('conditionJson') conditionJson: string,
-    @Query('byCondition') byCondition: string,
-  ) {
-    return parseInt(byCondition)
-      ? this.illustService.updatePolyByCondition(
-          JSON.parse(conditionJson),
-          type,
-          parent,
-          name,
-        )
-      : this.illustService.updatePoly(illusts, type, parent, name);
+  @Post('poly/bases')
+  updatePoly(@Body() illusts: IllustBatchDto) {
+    this.illustService.updatePoly(illusts);
   }
 
-  @Delete('poly/list')
-  async removeFromPoly(
+  @Delete('poly/bases')
+  removeFromPoly(
     @Query('polyId') polyId: number,
     @Query('illustList') ids: number[],
   ) {
@@ -98,12 +93,12 @@ export class IllustController {
   }
 
   @Delete('poly')
-  async deletePoly(@Query('polyId') polyId: number) {
-    return this.illustService.deletePoly(polyId);
+  deletePoly(@Query('polyId') polyId: string) {
+    return this.illustService.deletePoly(parseInt(polyId));
   }
 
   @Get('poly/enum')
-  async illustPolyEnum(
+  illustPolyEnum(
     @Query('row') row: string,
     @Query('desc') desc: string,
     @Query('requiredType') requiredType?: string,
@@ -112,13 +107,29 @@ export class IllustController {
   }
 
   @Get('remote-base/list')
-  async remoteBase(@Query('withIllust') withIllust: string) {
+  remoteBase(@Query('withIllust') withIllust: string) {
     return this.illustService.getRemoteBaseList(!!parseInt(withIllust));
   }
 
   @Post('remote-base')
-  async updateRemoteBase(@Body() remoteBase: RemoteBaseDto) {
+  updateRemoteBase(@Body() remoteBase: RemoteBaseDto) {
     return this.illustService.coverRemoteBase(remoteBase);
+  }
+
+  @Get('illust-today')
+  illustToday(@Query('date') date: string) {
+    return this.illustService.getIllustToday(new Date(date));
+  }
+
+  @Put('illust-today')
+  coverIllustToday(
+    @Query('date') date: string,
+    @Query('illustId') illustId: string,
+  ) {
+    return this.illustService.coverIllustToday(
+      new Date(date),
+      parseInt(illustId),
+    );
   }
   // @Get('test')
   // test() {

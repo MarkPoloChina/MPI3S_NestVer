@@ -39,7 +39,9 @@ export class Illust {
   @OneToOne(() => Meta, (meta) => meta.illust, { cascade: true })
   meta: Meta;
 
-  @ManyToOne(() => RemoteBase, (remote_base) => remote_base.illusts)
+  @ManyToOne(() => RemoteBase, (remote_base) => remote_base.illusts, {
+    nullable: false,
+  })
   remote_base: RemoteBase;
 
   @UpdateDateColumn()
