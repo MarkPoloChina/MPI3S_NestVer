@@ -173,26 +173,28 @@ export class IllustService {
 
   async newIllusts(illusts: IllustBatchDto) {
     const promises = illusts.dtos.map((illust) => {
-      return async () => {
+      return (async () => {
         const newIllust = new Illust();
         newIllust.star = illusts.addition.star;
-        newIllust.date = illusts.addition.date;
+        newIllust.date = illusts.addition.date || null;
         if (illust.dto.meta) {
           newIllust.meta = new Meta();
           newIllust.meta.pid = illust.dto.meta.pid;
           newIllust.meta.page = illust.dto.meta.page;
           newIllust.meta.title = illust.dto.meta.title;
-          newIllust.meta.limit = illusts.addition.meta.limit;
+          if (illusts.addition.meta)
+            newIllust.meta.limit = illusts.addition.meta.limit ?? null;
         }
         newIllust.remote_endpoint = illust.dto.remote_endpoint || null;
-        if (illust.dto.remote_base.name)
-          newIllust.remote_base = await this.remoteBaseRepository.findOneBy({
-            name: illust.dto.remote_base.name,
-          });
-        else if (illusts.addition.remote_base.id)
+        if (illusts.addition.remote_base && illusts.addition.remote_base.id) {
           newIllust.remote_base = await this.remoteBaseRepository.findOneBy({
             id: illusts.addition.remote_base.id,
           });
+        } else if (illust.dto.remote_base) {
+          newIllust.remote_base = await this.remoteBaseRepository.findOneBy({
+            name: illust.dto.remote_base.name,
+          });
+        }
         try {
           await this.illustRepository.save(newIllust);
           return {
@@ -209,7 +211,7 @@ export class IllustService {
             message: `${err}`,
           };
         }
-      };
+      })();
     });
     if (!illusts.control.asyncResult) {
       return await Promise.all(promises);
@@ -219,15 +221,18 @@ export class IllustService {
   async updateIllusts(illusts: IllustBatchDto) {
     let dtos: any[];
     if (illusts.conditionObject) {
-      dtos = await this.getIllustListByQuery(
+      const list = await this.getIllustListByQuery(
         illusts.conditionObject,
         10000000,
         0,
         {},
       );
+      dtos = list.map((value) => {
+        return { bid: null, ...value };
+      });
     } else dtos = illusts.dtos;
     const promises = dtos.map((illust) => {
-      return async () => {
+      return (async () => {
         let whereObj: object;
         if (illust.dto.id)
           whereObj = {
@@ -264,23 +269,24 @@ export class IllustService {
             targetIllust.meta.page = illust.dto.meta.page;
           }
           targetIllust.remote_endpoint = illust.dto.remote_endpoint || null;
-          if (illust.dto.remote_base.name)
-            targetIllust.remote_base =
-              await this.remoteBaseRepository.findOneBy({
-                name: illust.dto.remote_base.name,
-              });
-          else if (illusts.addition.remote_base.id)
+          if (illusts.addition.remote_base && illusts.addition.remote_base.id) {
             targetIllust.remote_base =
               await this.remoteBaseRepository.findOneBy({
                 id: illusts.addition.remote_base.id,
               });
+          } else if (illust.dto.remote_base) {
+            targetIllust.remote_base =
+              await this.remoteBaseRepository.findOneBy({
+                name: illust.dto.remote_base.name,
+              });
+          }
         }
         if (illusts.addition.star || illusts.addition.star === 0)
           targetIllust.star = illusts.addition.star;
         if (illusts.addition.date) targetIllust.date = illusts.addition.date;
-        if (illust.dto.meta.title)
+        if (illust.dto.meta && illust.dto.meta.title)
           targetIllust.meta.title = illust.dto.meta.title;
-        if (illusts.addition.meta.limit)
+        if (illusts.addition.meta && illusts.addition.meta.limit)
           targetIllust.meta.limit = illusts.addition.meta.limit;
         if (illusts.addition.tag) {
           for (const ele of illusts.addition.tag) {
@@ -319,7 +325,7 @@ export class IllustService {
             message: `${err}`,
           };
         }
-      };
+      })();
     });
     if (!illusts.control.asyncResult) return await Promise.all(promises);
     else Promise.all(promises);
@@ -358,14 +364,16 @@ export class IllustService {
         targetIllust.meta.page = illust.meta.page;
       }
       targetIllust.remote_endpoint = illust.remote_endpoint || null;
-      if (illust.remote_base.name)
-        targetIllust.remote_base = await this.remoteBaseRepository.findOneBy({
-          name: illust.remote_base.name,
-        });
-      else if (illust.remote_base.id)
-        targetIllust.remote_base = await this.remoteBaseRepository.findOneBy({
-          id: illust.remote_base.id,
-        });
+      if (illust.remote_base) {
+        if (illust.remote_base.name)
+          targetIllust.remote_base = await this.remoteBaseRepository.findOneBy({
+            name: illust.remote_base.name,
+          });
+        else if (illust.remote_base.id)
+          targetIllust.remote_base = await this.remoteBaseRepository.findOneBy({
+            id: illust.remote_base.id,
+          });
+      }
     }
     if (illust.star || illust.star === 0) targetIllust.star = illust.star;
     if (illust.date) targetIllust.date = illust.date;
@@ -433,24 +441,39 @@ export class IllustService {
       if (!targetPoly)
         throw new HttpException('No such poly.', HttpStatus.BAD_REQUEST);
     } else {
-      targetPoly = new Poly();
-      targetPoly.name = illusts.polyBase.name;
-      targetPoly.parent = illusts.polyBase.parent || null;
-      targetPoly.type = illusts.polyBase.type;
-      targetPoly.illusts = [];
-      await this.polyRepository.save(targetPoly);
+      let targetPoly = await this.polyRepository.findOne({
+        where: {
+          type: illusts.polyBase.type,
+          name: illusts.polyBase.name,
+          parent: illusts.polyBase.parent || null,
+        },
+        relations: {
+          illusts: true,
+        },
+      });
+      if (!targetPoly) {
+        targetPoly = new Poly();
+        targetPoly.name = illusts.polyBase.name;
+        targetPoly.parent = illusts.polyBase.parent || null;
+        targetPoly.type = illusts.polyBase.type;
+        targetPoly.illusts = [];
+        await this.polyRepository.save(targetPoly);
+      }
     }
     let dtos: any[];
     if (illusts.conditionObject) {
-      dtos = await this.getIllustListByQuery(
+      const list = await this.getIllustListByQuery(
         illusts.conditionObject,
         10000000,
         0,
         {},
       );
+      dtos = list.map((value) => {
+        return { bid: null, ...value };
+      });
     } else dtos = illusts.dtos;
     const promises = dtos.map((illust) => {
-      return async () => {
+      return (async () => {
         let targetIllust: Illust;
         if (illust.dto.id)
           targetIllust = await this.illustRepository.findOneBy({
@@ -490,7 +513,7 @@ export class IllustService {
             };
           }
         }
-      };
+      })();
     });
     if (!illusts.control.asyncResult) return await Promise.all(promises);
     else Promise.all(promises);
