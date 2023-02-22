@@ -89,6 +89,7 @@ export class PixivApiService {
       2: 'R-18G',
     };
     for (const illust of illusts) {
+      if (!illust.meta) continue;
       this.metaRepository
         .findBy({
           pid: illust.meta.pid,

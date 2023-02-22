@@ -81,7 +81,7 @@ export class IllustController {
 
   @Post('poly/bases')
   updatePoly(@Body() illusts: IllustBatchDto) {
-    this.illustService.updatePoly(illusts);
+    return this.illustService.updatePoly(illusts);
   }
 
   @Delete('poly/bases')

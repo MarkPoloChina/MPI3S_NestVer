@@ -172,50 +172,50 @@ export class IllustService {
   }
 
   async newIllusts(illusts: IllustBatchDto) {
-    const promises = illusts.dtos.map((illust) => {
-      return (async () => {
-        const newIllust = new Illust();
-        newIllust.star = illusts.addition.star;
-        newIllust.date = illusts.addition.date || null;
-        if (illust.dto.meta) {
-          newIllust.meta = new Meta();
-          newIllust.meta.pid = illust.dto.meta.pid;
-          newIllust.meta.page = illust.dto.meta.page;
-          newIllust.meta.title = illust.dto.meta.title;
-          if (illusts.addition.meta)
-            newIllust.meta.limit = illusts.addition.meta.limit ?? null;
-        }
-        newIllust.remote_endpoint = illust.dto.remote_endpoint || null;
-        if (illusts.addition.remote_base && illusts.addition.remote_base.id) {
-          newIllust.remote_base = await this.remoteBaseRepository.findOneBy({
-            id: illusts.addition.remote_base.id,
-          });
-        } else if (illust.dto.remote_base) {
-          newIllust.remote_base = await this.remoteBaseRepository.findOneBy({
-            name: illust.dto.remote_base.name,
-          });
-        }
-        try {
-          await this.illustRepository.save(newIllust);
-          return {
-            bid: illust.bid,
-            status: 'success',
-            message: 'OK',
-          };
-        } catch (err) {
-          return {
-            bid: illust.bid,
-            status: `${err}`.startsWith('QueryFailedError: Duplicate entry')
-              ? 'conflict'
-              : 'fault',
-            message: `${err}`,
-          };
-        }
-      })();
-    });
-    if (!illusts.control.asyncResult) {
-      return await Promise.all(promises);
-    } else Promise.all(promises);
+    const resp_list = [];
+    for (const illust of illusts.dtos) {
+      const newIllust = new Illust();
+      newIllust.star = illusts.addition.star;
+      newIllust.date = illusts.addition.date || null;
+      if (illust.dto.meta) {
+        newIllust.meta = new Meta();
+        newIllust.meta.pid = illust.dto.meta.pid;
+        newIllust.meta.page = illust.dto.meta.page;
+        newIllust.meta.title = illust.dto.meta.title;
+        if (illusts.addition.meta)
+          newIllust.meta.limit = illusts.addition.meta.limit ?? null;
+      }
+      newIllust.remote_endpoint = illust.dto.remote_endpoint || null;
+      if (illust.dto.remote_base) {
+        newIllust.remote_base = await this.remoteBaseRepository.findOneBy({
+          name: illust.dto.remote_base.name,
+        });
+      } else if (
+        illusts.addition.remote_base &&
+        illusts.addition.remote_base.id
+      ) {
+        newIllust.remote_base = await this.remoteBaseRepository.findOneBy({
+          id: illusts.addition.remote_base.id,
+        });
+      }
+      try {
+        await this.illustRepository.save(newIllust);
+        resp_list.push({
+          bid: illust.bid,
+          status: 'success',
+          message: 'OK',
+        });
+      } catch (err) {
+        resp_list.push({
+          bid: illust.bid,
+          status: `${err}`.startsWith('QueryFailedError: Duplicate entry')
+            ? 'conflict'
+            : 'fault',
+          message: `${err}`,
+        });
+      }
+    }
+    return resp_list;
   }
 
   async updateIllusts(illusts: IllustBatchDto) {
@@ -228,107 +228,112 @@ export class IllustService {
         {},
       );
       dtos = list.map((value) => {
-        return { bid: null, ...value };
+        return { bid: null, dto: value };
       });
     } else dtos = illusts.dtos;
-    const promises = dtos.map((illust) => {
-      return (async () => {
-        let whereObj: object;
-        if (illust.dto.id)
-          whereObj = {
-            id: illust.dto.id,
-          };
-        else if (illust.dto.meta)
-          whereObj = {
-            meta: {
-              pid: illust.dto.meta.pid,
-              page: illust.dto.meta.page,
+    const resp_list = [];
+    for (const illust of dtos) {
+      let whereObj: object;
+      if (illust.dto.id)
+        whereObj = {
+          id: illust.dto.id,
+        };
+      else if (illust.dto.meta)
+        whereObj = {
+          meta: {
+            pid: illust.dto.meta.pid,
+            page: illust.dto.meta.page,
+          },
+        };
+      else if (illust.dto.remote_endpoint)
+        whereObj = {
+          remote_endpoint: illust.dto.remote_endpoint,
+        };
+      let targetIllust = whereObj
+        ? await this.illustRepository.findOne({
+            where: whereObj,
+            relations: {
+              meta: true,
+              tag: true,
             },
-          };
-        let targetIllust = whereObj
-          ? await this.illustRepository.findOne({
-              where: whereObj,
-              relations: {
-                meta: true,
-                tag: true,
-              },
-            })
-          : null;
-        if (!targetIllust) {
-          if (!illusts.control.addIfNotFound) {
-            return {
-              bid: illust.bid,
-              status: 'ignore',
-              message: 'Illust Not Found.',
-            };
-          }
-          targetIllust = new Illust();
-          if (illust.dto.meta) {
-            targetIllust.meta = new Meta();
-            targetIllust.meta.pid = illust.dto.meta.pid;
-            targetIllust.meta.page = illust.dto.meta.page;
-          }
-          targetIllust.remote_endpoint = illust.dto.remote_endpoint || null;
-          if (illusts.addition.remote_base && illusts.addition.remote_base.id) {
-            targetIllust.remote_base =
-              await this.remoteBaseRepository.findOneBy({
-                id: illusts.addition.remote_base.id,
-              });
-          } else if (illust.dto.remote_base) {
-            targetIllust.remote_base =
-              await this.remoteBaseRepository.findOneBy({
-                name: illust.dto.remote_base.name,
-              });
-          }
+          })
+        : null;
+      if (!targetIllust) {
+        if (!illusts.control.addIfNotFound) {
+          resp_list.push({
+            bid: illust.bid,
+            status: 'ignore',
+            message: 'Illust Not Found.',
+          });
+          continue;
         }
-        if (illusts.addition.star || illusts.addition.star === 0)
-          targetIllust.star = illusts.addition.star;
-        if (illusts.addition.date) targetIllust.date = illusts.addition.date;
-        if (illust.dto.meta && illust.dto.meta.title)
-          targetIllust.meta.title = illust.dto.meta.title;
-        if (illusts.addition.meta && illusts.addition.meta.limit)
-          targetIllust.meta.limit = illusts.addition.meta.limit;
-        if (illusts.addition.tag) {
-          for (const ele of illusts.addition.tag) {
-            if (
-              targetIllust.tag.findIndex((value) => {
-                return value.name == ele;
-              }) == -1
-            ) {
-              let targetTag: Tag;
-              targetTag = await this.tagRepository.findOneBy({ name: ele });
-              if (!targetTag) {
-                targetTag = new Tag();
-                targetTag.name = ele;
-                targetTag.type = 'simple';
-                await this.tagRepository.save(targetTag);
-              }
-              targetIllust.tag.push(targetTag);
+        targetIllust = new Illust();
+        if (illust.dto.meta) {
+          targetIllust.meta = new Meta();
+          targetIllust.meta.pid = illust.dto.meta.pid;
+          targetIllust.meta.page = illust.dto.meta.page;
+        }
+        targetIllust.remote_endpoint = illust.dto.remote_endpoint || null;
+        if (illust.dto.remote_base) {
+          targetIllust.remote_base = await this.remoteBaseRepository.findOneBy({
+            name: illust.dto.remote_base.name,
+          });
+        } else if (
+          illusts.addition.remote_base &&
+          illusts.addition.remote_base.id
+        ) {
+          targetIllust.remote_base = await this.remoteBaseRepository.findOneBy({
+            id: illusts.addition.remote_base.id,
+          });
+        }
+      }
+      if (illusts.addition.star || illusts.addition.star === 0)
+        targetIllust.star = illusts.addition.star;
+      if (illusts.addition.date) targetIllust.date = illusts.addition.date;
+      if (illust.dto.meta && illust.dto.meta.title)
+        targetIllust.meta.title = illust.dto.meta.title;
+      if (illusts.addition.meta && illusts.addition.meta.limit)
+        targetIllust.meta.limit = illusts.addition.meta.limit;
+      if (illusts.addition.tag) {
+        for (const ele of illusts.addition.tag) {
+          if (
+            targetIllust.tag.findIndex((value) => {
+              return value.name == ele;
+            }) == -1
+          ) {
+            let targetTag: Tag;
+            targetTag = await this.tagRepository.findOneBy({ name: ele });
+            if (!targetTag) {
+              targetTag = new Tag();
+              targetTag.name = ele;
+              targetTag.type = 'simple';
+              await this.tagRepository.save(targetTag);
             }
+            targetIllust.tag.push(targetTag);
           }
         }
-        try {
-          const msg = targetIllust.id ? 'Modified.' : 'Added.';
-          await this.illustRepository.save(targetIllust.meta);
-          await this.illustRepository.save(targetIllust);
-          return {
-            bid: illust.bid,
-            status: 'success',
-            message: msg,
-          };
-        } catch (err) {
-          return {
-            bid: illust.bid,
-            status: `${err}`.startsWith('QueryFailedError: Duplicate entry')
-              ? 'conflict'
-              : 'fault',
-            message: `${err}`,
-          };
-        }
-      })();
-    });
-    if (!illusts.control.asyncResult) return await Promise.all(promises);
-    else Promise.all(promises);
+      }
+      try {
+        const msg = targetIllust.id ? 'Modified.' : 'Added.';
+        if (targetIllust.meta)
+          await this.metaRepository.save(targetIllust.meta);
+        await this.illustRepository.save(targetIllust);
+        resp_list.push({
+          bid: illust.bid,
+          status: 'success',
+          message: msg,
+        });
+      } catch (err) {
+        resp_list.push({
+          bid: illust.bid,
+          status: `${err}`.startsWith('QueryFailedError: Duplicate entry')
+            ? 'conflict'
+            : 'fault',
+          message: `${err}`,
+        });
+      }
+    }
+    return resp_list;
   }
 
   async updateIllust(illust: IllustDto, addIfNotFound: boolean) {
@@ -343,6 +348,10 @@ export class IllustService {
           pid: illust.meta.pid,
           page: illust.meta.page,
         },
+      };
+    else if (illust.remote_endpoint)
+      whereObj = {
+        remote_endpoint: illust.remote_endpoint,
       };
     let targetIllust = whereObj
       ? await this.illustRepository.findOne({
@@ -398,7 +407,7 @@ export class IllustService {
         }
       }
     }
-    await this.illustRepository.save(targetIllust.meta);
+    if (targetIllust.meta) await this.metaRepository.save(targetIllust.meta);
     await this.illustRepository.save(targetIllust);
   }
 
@@ -441,7 +450,7 @@ export class IllustService {
       if (!targetPoly)
         throw new HttpException('No such poly.', HttpStatus.BAD_REQUEST);
     } else {
-      let targetPoly = await this.polyRepository.findOne({
+      targetPoly = await this.polyRepository.findOne({
         where: {
           type: illusts.polyBase.type,
           name: illusts.polyBase.name,
@@ -469,54 +478,65 @@ export class IllustService {
         {},
       );
       dtos = list.map((value) => {
-        return { bid: null, ...value };
+        return { bid: null, dto: value };
       });
     } else dtos = illusts.dtos;
-    const promises = dtos.map((illust) => {
-      return (async () => {
-        let targetIllust: Illust;
-        if (illust.dto.id)
-          targetIllust = await this.illustRepository.findOneBy({
-            id: illust.dto.id,
-          });
-        else if (illust.dto.meta)
-          targetIllust = await this.illustRepository.findOneBy({
-            meta: {
-              pid: illust.dto.meta.pid,
-              page: illust.dto.meta.page,
-            },
-          });
-        else if (illust.dto.remote_endpoint)
-          targetIllust = await this.illustRepository.findOneBy({
-            remote_endpoint: illust.dto.remote_endpoint,
-          });
-        if (!targetIllust) {
-          return {
-            bid: illust.bid,
-            status: 'ignore',
-            message: 'Illust Not Found.',
-          };
-        } else {
+    const resp_list = [];
+    for (const illust of dtos) {
+      let targetIllust: Illust;
+      if (illust.dto.id)
+        targetIllust = await this.illustRepository.findOneBy({
+          id: illust.dto.id,
+        });
+      else if (illust.dto.meta)
+        targetIllust = await this.illustRepository.findOneBy({
+          meta: {
+            pid: illust.dto.meta.pid,
+            page: illust.dto.meta.page,
+          },
+        });
+      else if (illust.dto.remote_endpoint)
+        targetIllust = await this.illustRepository.findOneBy({
+          remote_endpoint: illust.dto.remote_endpoint,
+        });
+      if (!targetIllust) {
+        resp_list.push({
+          bid: illust.bid,
+          status: 'ignore',
+          message: 'Illust Not Found.',
+        });
+      } else {
+        if (!targetPoly.illusts.find((value) => value.id == targetIllust.id)) {
           targetPoly.illusts.push(targetIllust);
-          try {
-            await this.polyRepository.save(targetPoly);
-            return {
-              bid: illust.bid,
-              status: 'success',
-              message: 'OK',
-            };
-          } catch (err) {
-            return {
-              bid: illust.bid,
-              status: 'fault',
-              message: `${err}`,
-            };
-          }
+          resp_list.push({
+            bid: illust.bid,
+            status: 'padding',
+            message: 'OK',
+          });
+        } else {
+          resp_list.push({
+            bid: illust.bid,
+            status: 'conflict',
+            message: `EXIST Illust.`,
+          });
         }
-      })();
-    });
-    if (!illusts.control.asyncResult) return await Promise.all(promises);
-    else Promise.all(promises);
+      }
+    }
+    try {
+      await this.polyRepository.save(targetPoly);
+      return resp_list.map((value) => {
+        if (value.status == 'padding') value.status = 'success';
+        return value;
+      });
+    } catch (err) {
+      return resp_list.map((value) => {
+        if (value.status == 'padding') {
+          value.status = 'fault';
+          value.message = `${err}`;
+        }
+        return value;
+      });
+    }
   }
 
   async getRemoteBaseList(withIllust: boolean) {

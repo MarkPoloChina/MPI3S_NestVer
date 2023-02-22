@@ -12,7 +12,6 @@ export interface IllustBatchDto {
     }; // 只有dto没有rb才使用这里
   };
   control: {
-    asyncResult: boolean;
     addIfNotFound: boolean;
   };
   dtos: Array<{
