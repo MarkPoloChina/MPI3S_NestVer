@@ -77,6 +77,7 @@ export class IllustService {
     orderAs: object = {
       'meta.pid': 'DESC',
       'meta.page': 'ASC',
+      'Illust.remote_endpoint': 'ASC',
       'Illust.id': 'DESC',
     },
   ) {
@@ -106,7 +107,10 @@ export class IllustService {
         firstCause = false;
       } else querybuilder = querybuilder.addOrderBy(colName, orderAs[colName]);
     });
-    const results = await querybuilder.skip(offset).take(limit).getMany();
+    const results =
+      limit == -1
+        ? await querybuilder.getMany()
+        : await querybuilder.skip(offset).take(limit).getMany();
     return results;
   }
 
@@ -148,6 +152,7 @@ export class IllustService {
           pid: 'ASC',
           page: 'ASC',
         },
+        remote_endpoint: 'DESC',
         id: 'ASC',
       },
     },
@@ -223,7 +228,7 @@ export class IllustService {
     if (illusts.conditionObject) {
       const list = await this.getIllustListByQuery(
         illusts.conditionObject,
-        10000000,
+        -1,
         0,
         {},
       );
