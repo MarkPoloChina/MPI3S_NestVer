@@ -303,14 +303,14 @@ export class IllustService {
         for (const ele of illusts.addition.tag) {
           if (
             targetIllust.tag.findIndex((value) => {
-              return value.name == ele;
+              return value.name == ele.name;
             }) == -1
           ) {
             let targetTag: Tag;
-            targetTag = await this.tagRepository.findOneBy({ name: ele });
+            targetTag = await this.tagRepository.findOneBy({ name: ele.name });
             if (!targetTag) {
               targetTag = new Tag();
-              targetTag.name = ele;
+              targetTag.name = ele.name;
               targetTag.type = 'simple';
               await this.tagRepository.save(targetTag);
             }
@@ -397,20 +397,31 @@ export class IllustService {
       for (const ele of illust.tag) {
         if (
           targetIllust.tag.findIndex((value) => {
-            return value.name == ele;
+            return value.name == ele.name;
           }) == -1
         ) {
           let targetTag: Tag;
-          targetTag = await this.tagRepository.findOneBy({ name: ele });
+          targetTag = await this.tagRepository.findOneBy({ name: ele.name });
           if (!targetTag) {
             targetTag = new Tag();
-            targetTag.name = ele;
+            targetTag.name = ele.name;
             targetTag.type = 'simple';
             await this.tagRepository.save(targetTag);
           }
           targetIllust.tag.push(targetTag);
         }
       }
+      const newTags = [];
+      for (const tag of targetIllust.tag) {
+        if (
+          illust.tag.findIndex((value) => {
+            return value.name == tag.name;
+          }) != -1
+        ) {
+          newTags.push(tag);
+        }
+      }
+      targetIllust.tag = newTags;
     }
     if (targetIllust.meta) await this.metaRepository.save(targetIllust.meta);
     await this.illustRepository.save(targetIllust);

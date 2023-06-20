@@ -2,7 +2,11 @@ export interface IllustDto {
   id: number | null;
   star: number | null;
   date: Date | null;
-  tag: Array<string> | null;
+  tag: Array<{
+    id: number;
+    name: string;
+    type: string;
+  }> | null;
   remote_endpoint: string;
   meta: {
     pid: number;

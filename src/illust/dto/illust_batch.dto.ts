@@ -3,7 +3,11 @@ export interface IllustBatchDto {
   addition: {
     star: number | null;
     date: Date | null;
-    tag: Array<string> | null;
+    tag: Array<{
+      id: number;
+      name: string;
+      type: string;
+    }> | null;
     meta: {
       limit: string | null;
     };
