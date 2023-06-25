@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Put, Query, Res } from '@nestjs/common';
 import { PixivApiService } from './pixiv-api.service';
 import { Response } from 'express';
-import { IllustDto } from 'src/illust/dto/illust.dto';
+import { IllustBatchDto } from 'src/illust/dto/illust_batch.dto';
 
 @Controller('pixiv-api')
 export class PixivApiController {
@@ -39,8 +39,8 @@ export class PixivApiController {
   }
 
   @Put('pixiv-json/list')
-  async updateMeta(@Body() illust: IllustDto[]) {
-    return this.pixivApiService.updateMeta(illust);
+  async updateMetas(@Body() illusts: IllustBatchDto) {
+    return this.pixivApiService.updateMetas(illusts);
   }
 
   @Get('blob/proxy')

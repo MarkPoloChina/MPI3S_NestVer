@@ -1,14 +1,17 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IllustDto } from 'src/illust/dto/illust.dto';
 import { Meta } from 'src/illust/entities/meta.entities';
-import { Repository } from 'typeorm';
+import { Repository, SelectQueryBuilder } from 'typeorm';
 import { PixivIllustObjectDto } from './dto/pixiv-meta.dto';
 import { PixivAPI } from './plugins/pixiv-api';
+import { IllustBatchDto } from 'src/illust/dto/illust_batch.dto';
+import { Illust } from 'src/illust/entities/illust.entities';
 @Injectable()
 export class PixivApiService {
   @InjectRepository(Meta)
   private readonly metaRepository: Repository<Meta>;
+  @InjectRepository(Illust)
+  private readonly illustRepository: Repository<Illust>;
 
   async getPixivBlob(pid: number, page: number, type: string) {
     if (!['square_medium', 'medium', 'original'].includes(type))
@@ -82,34 +85,55 @@ export class PixivApiService {
     return await check();
   }
 
-  async updateMeta(illusts: IllustDto[]) {
+  async updateMetas(illusts: IllustBatchDto) {
     const limitMap = {
       0: 'normal',
       1: 'R-18',
       2: 'R-18G',
     };
-    for (const illust of illusts) {
-      if (!illust.meta) continue;
-      this.metaRepository
-        .findBy({
-          pid: illust.meta.pid,
-        })
-        .then(async (targetMeta) => {
-          if (!targetMeta) return;
-          const detail: { illust: PixivIllustObjectDto } =
-            await PixivAPI.getIllustInfoById(illust.meta.pid);
-          if (!detail || !detail.illust.visible) return;
-          targetMeta.forEach((meta) => {
-            meta.author = detail.illust.user.name;
-            meta.author_id = detail.illust.user.id;
-            meta.book_cnt = detail.illust.total_bookmarks;
-            meta.limit = limitMap[detail.illust.x_restrict];
-          });
-          this.metaRepository.save(targetMeta);
-        })
-        .catch((err) => {
-          console.log(err);
+    const list: Meta[] = [];
+    if (illusts.conditionObject) {
+      let querybuilder: SelectQueryBuilder<Illust> = this.illustRepository
+        .createQueryBuilder()
+        .leftJoinAndSelect('Illust.meta', 'meta')
+        .leftJoinAndSelect('Illust.poly', 'poly')
+        .leftJoinAndSelect('Illust.tag', 'tag')
+        .leftJoinAndSelect('Illust.remote_base', 'remote_base');
+      let firstCause = true;
+      Object.keys(illusts.conditionObject).forEach((colName, index) => {
+        if (illusts.conditionObject[colName].length) {
+          const param1 = `(${colName} IN (:...row${index}))`;
+          const param2 = {
+            [`row${index}`]: illusts.conditionObject[colName],
+          };
+          if (firstCause) {
+            querybuilder = querybuilder.where(param1, param2);
+            firstCause = false;
+          } else querybuilder = querybuilder.andWhere(param1, param2);
+        }
+      });
+      const results = await querybuilder.getMany();
+      for (const illust of results) {
+        if (illust.meta) list.push(illust.meta);
+      }
+    } else {
+      for (const illust of illusts.dtos) {
+        if (!illust.dto.meta) continue;
+        const result = await this.metaRepository.findBy({
+          pid: illust.dto.meta.pid,
         });
+        if (result) list.push(...result);
+      }
     }
+    list.forEach((meta) => {
+      PixivAPI.getIllustInfoById(meta.pid).then((detail) => {
+        if (!detail || !detail.illust.visible) return;
+        meta.author = detail.illust.user.name;
+        meta.author_id = detail.illust.user.id;
+        meta.book_cnt = detail.illust.total_bookmarks;
+        meta.limit = limitMap[detail.illust.x_restrict];
+        this.metaRepository.save(meta);
+      });
+    });
   }
 }
