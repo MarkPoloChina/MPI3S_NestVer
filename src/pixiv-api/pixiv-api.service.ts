@@ -136,4 +136,12 @@ export class PixivApiService {
       });
     });
   }
+
+  async getPixivJson(pid: number) {
+    const detail: { illust: PixivIllustObjectDto } =
+      await PixivAPI.getIllustInfoById(pid);
+    if (!detail || !detail.illust.visible)
+      throw new HttpException('pid no found', HttpStatus.NOT_FOUND);
+    return detail;
+  }
 }

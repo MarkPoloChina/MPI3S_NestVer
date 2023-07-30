@@ -43,6 +43,11 @@ export class PixivApiController {
     return this.pixivApiService.updateMetas(illusts);
   }
 
+  @Get('pixiv-json')
+  async getJson(@Query('pid') pid: number) {
+    return this.pixivApiService.getPixivJson(pid);
+  }
+
   @Get('blob/proxy')
   async getBlobProxy(@Query('url') url: string, @Res() response: Response) {
     const blob = await this.pixivApiService.getPixivBlobByProxy(url);
