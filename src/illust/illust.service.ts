@@ -427,6 +427,15 @@ export class IllustService {
     await this.illustRepository.save(targetIllust);
   }
 
+  async deleteIllusts(illustIds: number[]) {
+    for (const illustId of illustIds) {
+      try {
+        await this.illustRepository.delete(illustId);
+      } catch {
+        continue;
+      }
+    }
+  }
   async removeIllustsFromPoly(polyId: number, ids: number[]) {
     const targetPoly = await this.polyRepository.findOne({
       where: { id: polyId },

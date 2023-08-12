@@ -35,7 +35,9 @@ export class Meta {
   @Column({ type: 'int', nullable: true })
   book_cnt: number;
 
-  @OneToOne(() => Illust, (illust) => illust.meta)
+  @OneToOne(() => Illust, (illust) => illust.meta, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn()
   illust: Illust;
 }

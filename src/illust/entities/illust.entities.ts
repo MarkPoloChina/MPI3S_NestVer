@@ -36,7 +36,10 @@ export class Illust {
   @ManyToMany(() => Tag, (tag) => tag.illusts)
   tag: Tag[];
 
-  @OneToOne(() => Meta, (meta) => meta.illust, { cascade: true })
+  @OneToOne(() => Meta, (meta) => meta.illust, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   meta: Meta;
 
   @ManyToOne(() => RemoteBase, (remote_base) => remote_base.illusts, {

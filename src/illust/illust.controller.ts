@@ -66,6 +66,11 @@ export class IllustController {
     return this.illustService.updateIllust(illusts, !!parseInt(addIfNotFound));
   }
 
+  @Delete('bases')
+  deleteIllusts(@Query('illustIds') illustIds: number[]) {
+    return this.illustService.deleteIllusts(illustIds);
+  }
+
   @Get('poly/list')
   illustPolyList(
     @Query('withIllust') withIllust?: string,
