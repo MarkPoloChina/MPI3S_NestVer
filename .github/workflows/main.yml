@@ -43,7 +43,9 @@ jobs:
             export http_proxy="http://172.17.0.1:7890" https_proxy="http://172.17.0.1:7890"
             git pull
             yarn
-            export http_proxy="" https_proxy=""
+            yarn build
+            unset http_proxy
+            unset https_proxy
             pm2 restart mpi3s
           host: ${{ secrets.HOST }}
           username: root
