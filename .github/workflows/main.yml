@@ -39,13 +39,10 @@ jobs:
         uses: garygrossgarten/github-action-ssh@release
         with:
           command: |
-            cd ~/workplace/MPI3S_NestVer
-            export http_proxy="http://172.17.0.1:7890" https_proxy="http://172.17.0.1:7890"
+            cd ${{ vars.WORKPLACE_PATH }}
             git pull
             yarn
             yarn build
-            unset http_proxy
-            unset https_proxy
             pm2 restart mpi3s
           host: ${{ secrets.HOST }}
           username: root

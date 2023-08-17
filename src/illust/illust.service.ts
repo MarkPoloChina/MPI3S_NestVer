@@ -391,8 +391,10 @@ export class IllustService {
     }
     if (illust.star || illust.star === 0) targetIllust.star = illust.star;
     if (illust.date) targetIllust.date = illust.date;
-    if (illust.meta.title) targetIllust.meta.title = illust.meta.title;
-    if (illust.meta.limit) targetIllust.meta.limit = illust.meta.limit;
+    if (illust.meta && illust.meta.title)
+      targetIllust.meta.title = illust.meta.title;
+    if (illust.meta && illust.meta.limit)
+      targetIllust.meta.limit = illust.meta.limit;
     if (illust.tag) {
       for (const ele of illust.tag) {
         if (
