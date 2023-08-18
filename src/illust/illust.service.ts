@@ -278,7 +278,6 @@ export class IllustService {
           targetIllust.meta.pid = illust.dto.meta.pid;
           targetIllust.meta.page = illust.dto.meta.page;
         }
-        targetIllust.remote_endpoint = illust.dto.remote_endpoint || null;
         if (illust.dto.remote_base) {
           targetIllust.remote_base = await this.remoteBaseRepository.findOneBy({
             name: illust.dto.remote_base.name,
@@ -292,6 +291,7 @@ export class IllustService {
           });
         }
       }
+      targetIllust.remote_endpoint = illust.dto.remote_endpoint || null;
       if (illusts.addition.star || illusts.addition.star === 0)
         targetIllust.star = illusts.addition.star;
       if (illusts.addition.date) targetIllust.date = illusts.addition.date;
@@ -377,7 +377,6 @@ export class IllustService {
         targetIllust.meta.pid = illust.meta.pid;
         targetIllust.meta.page = illust.meta.page;
       }
-      targetIllust.remote_endpoint = illust.remote_endpoint || null;
       if (illust.remote_base) {
         if (illust.remote_base.name)
           targetIllust.remote_base = await this.remoteBaseRepository.findOneBy({
@@ -389,6 +388,7 @@ export class IllustService {
           });
       }
     }
+    targetIllust.remote_endpoint = illust.remote_endpoint || null;
     if (illust.star || illust.star === 0) targetIllust.star = illust.star;
     if (illust.date) targetIllust.date = illust.date;
     if (illust.meta && illust.meta.title)
