@@ -3,6 +3,8 @@ const config = require('../../config').default;
 const { Agent } = require('https');
 const Axios = require('axios');
 const HttpsProxyAgent = require('https-proxy-agent');
+import Pixiv from 'pixiv.ts';
+// const pixiv = Pixiv.refreshLogin();
 
 let api = new Pixiv();
 let ready = false;
