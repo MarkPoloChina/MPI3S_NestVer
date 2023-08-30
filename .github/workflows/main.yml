@@ -6,7 +6,7 @@ name: CI
 on:
   # Triggers the workflow on push or pull request events but only for the "master" branch
   push:
-    branches: [ "master" ]
+    branches: ['cicd-test']
   # pull_request:
   #   branches: [ "master" ]
 
@@ -46,6 +46,5 @@ jobs:
             pm2 restart mpi3s
           host: ${{ secrets.HOST }}
           username: root
-          port: ${{ vars.PORT }}
-          password: ${{ secrets.SSHPW }}
-          # privateKey: ${{ secrets.PRIVATE_KEY}}
+          port: ${{ secrets.PORT }}
+          privateKey: ${{ secrets.PRIVATE_KEY}}
