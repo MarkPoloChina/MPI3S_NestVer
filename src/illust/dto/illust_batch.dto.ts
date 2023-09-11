@@ -22,6 +22,7 @@ export interface IllustBatchDto {
     dto: {
       id: number | null;
       remote_endpoint: string;
+      thumb_endpoint: string;
       meta: {
         pid: number;
         page: number;

@@ -27,6 +27,9 @@ export class Illust {
   @Column({ type: 'varchar', nullable: true, unique: true })
   remote_endpoint: string;
 
+  @Column({ type: 'varchar', nullable: true, unique: true })
+  thumb_endpoint: string;
+
   @Column({ type: 'date', nullable: true })
   date: Date;
 

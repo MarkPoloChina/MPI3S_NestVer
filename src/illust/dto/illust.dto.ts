@@ -8,6 +8,7 @@ export interface IllustDto {
     type: string;
   }> | null;
   remote_endpoint: string;
+  thumb_endpoint: string;
   meta: {
     pid: number;
     page: number;
